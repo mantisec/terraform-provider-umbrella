@@ -88,4 +88,10 @@ help:
 	@echo "  docs            - Generate documentation"
 	@echo "  install-local   - Install provider locally for development"
 	@echo "  validate-examples - Validate all Terraform examples"
+	@echo "  release-test    - Test release build with GoReleaser"
 	@echo "  help            - Show this help message"
+
+# Test release build with GoReleaser (requires GoReleaser to be installed)
+.PHONY: release-test
+release-test:
+	goreleaser release --snapshot --clean

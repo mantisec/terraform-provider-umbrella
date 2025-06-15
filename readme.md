@@ -172,31 +172,49 @@ resource "umbrella_rule" "bypass_azure_ad" {
 
 ### Complete Examples
 
-- See [`example.tf`](./example.tf) for basic destination lists and tunnels
-- See [`sso_terraform_example.tf`](./sso_terraform_example.tf) for comprehensive SAML setup replacing curl commands
+- See [`examples/`](./examples/) directory for various usage examples
+- See [`examples/basic/main.tf`](./examples/basic/main.tf) for basic destination lists and tunnels
 
 ## Installation
+
+### From Terraform Registry (Recommended)
+
+Once published, you can use the provider directly from the Terraform Registry:
+
+```hcl
+terraform {
+  required_providers {
+    umbrella = {
+      source  = "mantisec/umbrella"
+      version = "~> 0.2.0"
+    }
+  }
+}
+```
 
 ### Local Development
 
 1. Build the provider:
    ```bash
-   go build -o terraform-provider-umbrella.exe
+   make build
    ```
 
-2. Create a local provider configuration in your Terraform directory:
+2. Install locally for testing:
+   ```bash
+   make install-local
+   ```
+
+3. Create a local provider configuration in your Terraform directory:
    ```hcl
    terraform {
      required_providers {
        umbrella = {
-         source = "local/umbrella"
-         version = "0.1.0"
+         source = "local/mantisec/umbrella"
+         version = "0.2.0"
        }
      }
    }
    ```
-
-3. Place the built binary in your Terraform plugins directory or use `terraform init` with local provider configuration.
 
 ### Authentication
 
@@ -283,6 +301,33 @@ This approach provides:
 - ✅ Plan/apply workflow
 - ✅ Import existing resources
 
+## Publishing & Releases
+
+This provider is configured for automated publishing to the Terraform Registry using GitHub Actions. See [`PUBLISHING.md`](./PUBLISHING.md) for detailed setup instructions.
+
+### Release Process
+
+1. **Create a release** using the provided script:
+   ```bash
+   # On Linux/macOS
+   ./scripts/release.sh 1.0.0
+   
+   # On Windows
+   bash scripts/release.sh 1.0.0
+   ```
+
+2. **Manual release** (alternative):
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+3. **GitHub Actions will automatically**:
+   - Build binaries for multiple platforms
+   - Sign releases with GPG
+   - Publish to GitHub Releases
+   - Update Terraform Registry
+
 ## Changelog
 
 ### v0.2.0
@@ -291,6 +336,9 @@ This approach provides:
 - Added policy rule management within rulesets
 - Enhanced support for SAML-enabled environments
 - Comprehensive examples for replacing curl-based configurations
+- **Added automated publishing to Terraform Registry**
+- **Added GitHub Actions workflows for CI/CD**
+- **Added GoReleaser configuration for multi-platform builds**
 
 ### v0.1.0
 - Initial release
