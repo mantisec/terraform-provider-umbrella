@@ -4,8 +4,8 @@
 terraform {
   required_providers {
     umbrella = {
-      source = "local/umbrella"
-      version = "0.1.0"
+      source = "mantisec/umbrella"
+      version = "~> 0.2"
     }
   }
 }
