@@ -59,6 +59,43 @@ deps:
 docs:
 	tfplugindocs generate
 
+# Generate provider code from OpenAPI specs
+.PHONY: generate
+generate:
+	go run tools/generator/cmd/generate/main.go
+
+# Generate with full Phase 2 features (client methods, docs, tests)
+.PHONY: generate-full
+generate-full:
+	@echo "Generating Phase 2 provider code with advanced features..."
+	go run tools/generator/cmd/generate/main.go
+	@echo "Formatting generated code..."
+	go fmt ./internal/provider/generated_*.go
+	@echo "Validating generated code..."
+	go vet ./internal/provider/generated_*.go
+	@echo "Generation complete!"
+
+# Generate only client methods
+.PHONY: generate-client
+generate-client:
+	@echo "Generating client methods..."
+	go run tools/generator/cmd/generate/main.go -client-only
+	go fmt ./internal/provider/generated_client_methods.go
+
+# Generate only documentation
+.PHONY: generate-docs
+generate-docs:
+	@echo "Generating documentation..."
+	go run tools/generator/cmd/generate/main.go -docs-only
+	@echo "Documentation generated in docs/ directory"
+
+# Generate only tests
+.PHONY: generate-tests
+generate-tests:
+	@echo "Generating test files..."
+	go run tools/generator/cmd/generate/main.go -tests-only
+	go fmt ./internal/provider/tests/*_test.go
+
 # Install the provider locally for development
 .PHONY: install-local
 install-local: build
@@ -77,19 +114,24 @@ validate-examples:
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  build           - Build the provider binary"
-	@echo "  build-cross     - Cross-compile for specific OS/Architecture"
-	@echo "  test            - Run tests"
-	@echo "  test-coverage   - Run tests with coverage report"
-	@echo "  fmt             - Format Go code"
-	@echo "  lint            - Run linter"
-	@echo "  clean           - Clean build artifacts"
-	@echo "  deps            - Install/update dependencies"
-	@echo "  docs            - Generate documentation"
-	@echo "  install-local   - Install provider locally for development"
+	@echo "  build             - Build the provider binary"
+	@echo "  build-cross       - Cross-compile for specific OS/Architecture"
+	@echo "  test              - Run tests"
+	@echo "  test-coverage     - Run tests with coverage report"
+	@echo "  fmt               - Format Go code"
+	@echo "  lint              - Run linter"
+	@echo "  clean             - Clean build artifacts"
+	@echo "  deps              - Install/update dependencies"
+	@echo "  docs              - Generate documentation"
+	@echo "  generate          - Generate provider code from OpenAPI specs"
+	@echo "  generate-full     - Generate Phase 2 provider with all features"
+	@echo "  generate-client   - Generate only client methods"
+	@echo "  generate-docs     - Generate only documentation"
+	@echo "  generate-tests    - Generate only test files"
+	@echo "  install-local     - Install provider locally for development"
 	@echo "  validate-examples - Validate all Terraform examples"
-	@echo "  release-test    - Test release build with GoReleaser"
-	@echo "  help            - Show this help message"
+	@echo "  release-test      - Test release build with GoReleaser"
+	@echo "  help              - Show this help message"
 
 # Test release build with GoReleaser (requires GoReleaser to be installed)
 .PHONY: release-test

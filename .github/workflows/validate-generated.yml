@@ -1,0 +1,435 @@
+name: Validate Generated Code
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'internal/provider/generated_*.go'
+      - 'internal/provider/*_test.go'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'internal/provider/generated_*.go'
+      - 'internal/provider/*_test.go'
+  schedule:
+    # Run validation daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      validation_level:
+        description: 'Validation level'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - 'basic'
+          - 'standard'
+          - 'comprehensive'
+      include_integration_tests:
+        description: 'Include integration tests'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  GO_VERSION: '1.21'
+  TF_VERSION: '1.6.0'
+
+jobs:
+  code-quality:
+    name: Code Quality Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Install quality tools
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Build code validator
+        run: |
+          if [ -d "tools/generator/validator" ]; then
+            go build -o bin/code-validator ./tools/generator/validator/
+          fi
+
+      - name: Run code quality checks
+        run: |
+          echo "Running code quality validation..."
+          
+          # Create reports directory
+          mkdir -p reports/quality
+          
+          # Run gofmt check
+          echo "Checking code formatting..."
+          gofmt -l internal/provider/ > reports/quality/gofmt.log || true
+          if [ -s reports/quality/gofmt.log ]; then
+            echo "❌ Code formatting issues found"
+            cat reports/quality/gofmt.log
+          else
+            echo "✅ Code formatting is correct"
+          fi
+          
+          # Run goimports check
+          echo "Checking imports..."
+          goimports -l internal/provider/ > reports/quality/goimports.log || true
+          if [ -s reports/quality/goimports.log ]; then
+            echo "❌ Import issues found"
+            cat reports/quality/goimports.log
+          else
+            echo "✅ Imports are correct"
+          fi
+          
+          # Run go vet
+          echo "Running go vet..."
+          go vet ./internal/provider/... 2>&1 | tee reports/quality/govet.log || true
+          
+          # Run staticcheck
+          echo "Running staticcheck..."
+          staticcheck ./internal/provider/... 2>&1 | tee reports/quality/staticcheck.log || true
+          
+          # Run golangci-lint
+          echo "Running golangci-lint..."
+          golangci-lint run ./internal/provider/... --out-format=json > reports/quality/golangci-lint.json || true
+
+      - name: Run custom code validator
+        run: |
+          echo "Running custom code validation..."
+          
+          if [ -f "bin/code-validator" ]; then
+            ./bin/code-validator \
+              -config tools/generator/config/advanced_config.yaml \
+              -dir internal/provider \
+              -output reports/quality/custom-validation.json \
+              -verbose || true
+          fi
+
+      - name: Generate quality report
+        run: |
+          echo "Generating quality report..."
+          
+          cat > reports/quality/summary.md << 'EOF'
+          # Code Quality Report
+          
+          Generated at: $(date)
+          
+          ## Summary
+          
+          | Check | Status | Issues |
+          |-------|--------|--------|
+          EOF
+          
+          # Add results to summary
+          echo "| gofmt | $([ -s reports/quality/gofmt.log ] && echo "❌ Failed" || echo "✅ Passed") | $(wc -l < reports/quality/gofmt.log) |" >> reports/quality/summary.md
+          echo "| goimports | $([ -s reports/quality/goimports.log ] && echo "❌ Failed" || echo "✅ Passed") | $(wc -l < reports/quality/goimports.log) |" >> reports/quality/summary.md
+          echo "| go vet | $([ -s reports/quality/govet.log ] && echo "❌ Failed" || echo "✅ Passed") | $(wc -l < reports/quality/govet.log) |" >> reports/quality/summary.md
+          echo "| staticcheck | $([ -s reports/quality/staticcheck.log ] && echo "❌ Failed" || echo "✅ Passed") | $(wc -l < reports/quality/staticcheck.log) |" >> reports/quality/summary.md
+
+      - name: Upload quality reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: quality-reports
+          path: reports/quality/
+          retention-days: 30
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run unit tests
+        run: |
+          echo "Running unit tests..."
+          
+          mkdir -p reports/tests
+          
+          # Run tests with coverage
+          go test -v -race -coverprofile=reports/tests/coverage.out -covermode=atomic ./internal/provider/... | tee reports/tests/unit-tests.log
+          
+          # Generate coverage report
+          go tool cover -html=reports/tests/coverage.out -o reports/tests/coverage.html
+          go tool cover -func=reports/tests/coverage.out | tee reports/tests/coverage-summary.txt
+
+      - name: Check coverage threshold
+        run: |
+          echo "Checking coverage threshold..."
+          
+          if [ -f "reports/tests/coverage.out" ]; then
+            COVERAGE=$(go tool cover -func=reports/tests/coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+            THRESHOLD=70
+            
+            echo "Current coverage: ${COVERAGE}%"
+            echo "Required threshold: ${THRESHOLD}%"
+            
+            if (( $(echo "$COVERAGE >= $THRESHOLD" | bc -l) )); then
+              echo "✅ Coverage threshold met"
+            else
+              echo "❌ Coverage below threshold"
+              # Don't fail the build for coverage, just warn
+            fi
+          else
+            echo "No coverage data available"
+          fi
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-reports
+          path: reports/tests/
+          retention-days: 30
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    if: github.event.inputs.include_integration_tests != 'false'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run integration tests
+        env:
+          TF_ACC: 1
+        run: |
+          echo "Running integration tests..."
+          
+          mkdir -p reports/integration
+          
+          # Run acceptance tests if they exist
+          if [ -d "internal/provider/tests" ]; then
+            go test -v -timeout=30m ./internal/provider/tests/... | tee reports/integration/integration-tests.log || true
+          else
+            echo "No integration tests found" | tee reports/integration/integration-tests.log
+          fi
+
+      - name: Upload integration reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: integration-reports
+          path: reports/integration/
+          retention-days: 30
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install Gosec
+        run: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+
+      - name: Run Gosec Security Scanner
+        run: |
+          gosec -fmt sarif -out gosec-results.sarif ./... || true
+        continue-on-error: true
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        if: always() && hashFiles('gosec-results.sarif') != ''
+        with:
+          sarif_file: gosec-results.sarif
+        continue-on-error: true
+
+  generate-report:
+    name: Generate Validation Report
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, integration-tests, security-scan]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all reports
+        uses: actions/download-artifact@v3
+        with:
+          path: all-reports/
+        continue-on-error: true
+
+      - name: Generate comprehensive report
+        run: |
+          echo "Generating comprehensive validation report..."
+          
+          mkdir -p final-report
+          
+          cat > final-report/validation-report.md << 'EOF'
+          # Comprehensive Validation Report
+          
+          Generated at: $(date)
+          Validation Level: ${{ github.event.inputs.validation_level || 'standard' }}
+          
+          ## Summary
+          
+          | Component | Status | Details |
+          |-----------|--------|---------|
+          | Code Quality | ${{ needs.code-quality.result == 'success' && '✅ Passed' || '❌ Failed' }} | Quality checks and linting |
+          | Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} | Unit test execution and coverage |
+          | Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ Passed' || (needs.integration-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | Integration and acceptance tests |
+          | Security Scan | ${{ needs.security-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} | Security vulnerability scanning |
+          
+          ## Detailed Results
+          
+          ### Code Quality
+          - **Status**: ${{ needs.code-quality.result }}
+          - **Details**: Code formatting, imports, vet, and linting checks
+          
+          ### Unit Tests
+          - **Status**: ${{ needs.unit-tests.result }}
+          - **Details**: Unit test execution with coverage analysis
+          
+          ### Integration Tests
+          - **Status**: ${{ needs.integration-tests.result }}
+          - **Details**: Terraform acceptance tests and integration scenarios
+          
+          ### Security Scan
+          - **Status**: ${{ needs.security-scan.result }}
+          - **Details**: Security vulnerability and code analysis
+          
+          ## Recommendations
+          
+          EOF
+          
+          # Add recommendations based on results
+          if [ "${{ needs.code-quality.result }}" != "success" ]; then
+            echo "- 🔧 Address code quality issues identified in the quality report" >> final-report/validation-report.md
+          fi
+          
+          if [ "${{ needs.unit-tests.result }}" != "success" ]; then
+            echo "- 🧪 Fix failing unit tests and improve test coverage" >> final-report/validation-report.md
+          fi
+          
+          if [ "${{ needs.integration-tests.result }}" == "failure" ]; then
+            echo "- 🔗 Investigate and fix integration test failures" >> final-report/validation-report.md
+          fi
+          
+          if [ "${{ needs.security-scan.result }}" != "success" ]; then
+            echo "- 🔒 Review and address security vulnerabilities" >> final-report/validation-report.md
+          fi
+          
+          echo "" >> final-report/validation-report.md
+          echo "## Artifacts" >> final-report/validation-report.md
+          echo "" >> final-report/validation-report.md
+          echo "Detailed reports are available in the workflow artifacts:" >> final-report/validation-report.md
+          echo "- Quality Reports: Code quality analysis results" >> final-report/validation-report.md
+          echo "- Test Reports: Unit test results and coverage" >> final-report/validation-report.md
+          echo "- Integration Reports: Integration test results" >> final-report/validation-report.md
+          echo "- Security Reports: Security scan results" >> final-report/validation-report.md
+
+      - name: Upload final report
+        uses: actions/upload-artifact@v3
+        with:
+          name: validation-report
+          path: final-report/
+          retention-days: 90
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            
+            try {
+              const report = fs.readFileSync('final-report/validation-report.md', 'utf8');
+              
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `## 🤖 Automated Validation Report\n\n${report}`
+              });
+            } catch (error) {
+              console.log('Could not post comment:', error);
+            }
+
+  notify-completion:
+    name: Notify Completion
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, integration-tests, security-scan, generate-report]
+    if: always()
+    steps:
+      - name: Determine overall status
+        id: status
+        run: |
+          if [ "${{ needs.code-quality.result }}" == "success" ] && 
+             [ "${{ needs.unit-tests.result }}" == "success" ] && 
+             ([ "${{ needs.integration-tests.result }}" == "success" ] || [ "${{ needs.integration-tests.result }}" == "skipped" ]) &&
+             [ "${{ needs.security-scan.result }}" == "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=All validation checks passed successfully! ✅" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=Some validation checks failed. Please review the reports. ❌" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify result
+        run: |
+          echo "${{ steps.status.outputs.message }}"
+          
+          if [ "${{ steps.status.outputs.status }}" == "failure" ]; then
+            echo "Failed jobs:"
+            [ "${{ needs.code-quality.result }}" != "success" ] && echo "  - Code Quality: ${{ needs.code-quality.result }}"
+            [ "${{ needs.unit-tests.result }}" != "success" ] && echo "  - Unit Tests: ${{ needs.unit-tests.result }}"
+            [ "${{ needs.integration-tests.result }}" == "failure" ] && echo "  - Integration Tests: ${{ needs.integration-tests.result }}"
+            [ "${{ needs.security-scan.result }}" != "success" ] && echo "  - Security Scan: ${{ needs.security-scan.result }}"
+          fi

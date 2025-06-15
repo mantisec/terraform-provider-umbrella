@@ -1,0 +1,70 @@
+package provider
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// OrganizationsDataSource implements the organizations data source
+type OrganizationsDataSource struct {
+	client *apiClient
+}
+
+// organizationsDataModel represents the data source data model
+type organizationsDataModel struct {
+	Id types.String `tfsdk:"id"`
+}
+
+// NewOrganizationsDataSource creates a new organizations data source
+func NewOrganizationsDataSource() datasource.DataSource {
+	return &OrganizationsDataSource{}
+}
+
+// Metadata returns the data source type name
+func (d *OrganizationsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = "umbrella_organizations"
+}
+
+// Configure configures the data source with the provider client
+func (d *OrganizationsDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	client, ok := req.ProviderData.(*apiClient)
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected DataSource Configure Type", "Expected *apiClient")
+		return
+	}
+
+	d.client = client
+}
+
+// Schema defines the data source schema
+func (d *OrganizationsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "organizations data source",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{Computed: true, Description: "Data source identifier"},
+		},
+	}
+}
+
+// Read reads the organizations data
+func (d *OrganizationsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config organizationsDataModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /organizations
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
+}

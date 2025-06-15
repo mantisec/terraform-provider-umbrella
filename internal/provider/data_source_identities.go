@@ -1,0 +1,74 @@
+package provider
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// IdentitiesDataSource implements the identities data source
+type IdentitiesDataSource struct {
+	client *apiClient
+}
+
+// identitiesDataModel represents the data source data model
+type identitiesDataModel struct {
+	Id   types.String `tfsdk:"id"`
+	Data types.String `tfsdk:"data"`
+	Meta types.String `tfsdk:"meta"`
+}
+
+// NewIdentitiesDataSource creates a new identities data source
+func NewIdentitiesDataSource() datasource.DataSource {
+	return &IdentitiesDataSource{}
+}
+
+// Metadata returns the data source type name
+func (d *IdentitiesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = "umbrella_identities"
+}
+
+// Configure configures the data source with the provider client
+func (d *IdentitiesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	client, ok := req.ProviderData.(*apiClient)
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected DataSource Configure Type", "Expected *apiClient")
+		return
+	}
+
+	d.client = client
+}
+
+// Schema defines the data source schema
+func (d *IdentitiesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "identities data source",
+		Attributes: map[string]schema.Attribute{
+			"id":   schema.StringAttribute{Computed: true, Description: "Data source identifier"},
+			"data": schema.StringAttribute{Computed: true},
+			"meta": schema.StringAttribute{Computed: true},
+		},
+	}
+}
+
+// Read reads the identities data
+func (d *IdentitiesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var config identitiesDataModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /identities/{identityid}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
+}

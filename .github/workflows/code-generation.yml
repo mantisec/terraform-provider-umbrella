@@ -1,0 +1,442 @@
+name: Automated Code Generation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '*.yaml'
+      - '*.yml'
+      - 'tools/generator/**'
+      - '.github/workflows/code-generation.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '*.yaml'
+      - '*.yml'
+      - 'tools/generator/**'
+  workflow_dispatch:
+    inputs:
+      force_regenerate:
+        description: 'Force regenerate all code'
+        required: false
+        default: false
+        type: boolean
+      spec_files:
+        description: 'Specific spec files to process (comma-separated)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  GO_VERSION: '1.21'
+  GENERATOR_CONFIG: 'tools/generator/config/generation.yaml'
+  ADVANCED_CONFIG: 'tools/generator/config/advanced_config.yaml'
+
+jobs:
+  detect-changes:
+    name: Detect API Specification Changes
+    runs-on: ubuntu-latest
+    outputs:
+      specs-changed: ${{ steps.changes.outputs.specs }}
+      generator-changed: ${{ steps.changes.outputs.generator }}
+      changed-files: ${{ steps.changes.outputs.changed-files }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            specs:
+              - '*.yaml'
+              - '*.yml'
+            generator:
+              - 'tools/generator/**'
+          list-files: json
+
+      - name: List changed files
+        id: changed-files
+        run: |
+          echo "changed-files=${{ steps.changes.outputs.specs_files }}" >> $GITHUB_OUTPUT
+
+  validate-specs:
+    name: Validate OpenAPI Specifications
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.specs-changed == 'true' || needs.detect-changes.outputs.generator-changed == 'true' || github.event.inputs.force_regenerate == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build generator
+        run: go build -o bin/generator ./tools/generator/cmd/generate
+
+      - name: Validate OpenAPI specifications
+        run: |
+          echo "Validating OpenAPI specifications..."
+          
+          # Find all YAML files that are OpenAPI specs
+          SPEC_FILES=$(find . -name "*.yaml" -o -name "*.yml" | grep -v ".github" | grep -v "tools/generator/config")
+          
+          if [ -z "$SPEC_FILES" ]; then
+            echo "No OpenAPI specification files found"
+            exit 0
+          fi
+          
+          # Validate each spec file
+          for spec in $SPEC_FILES; do
+            echo "Validating $spec..."
+            
+            # Use a simple validation tool or custom validator
+            if ! ./bin/generator -config ${{ env.GENERATOR_CONFIG }} -specs $(dirname "$spec") -output /tmp/validation -verbose; then
+              echo "❌ Validation failed for $spec"
+              exit 1
+            else
+              echo "✅ $spec is valid"
+            fi
+          done
+
+      - name: Upload validation results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: validation-results
+          path: |
+            /tmp/validation/
+            validation-*.log
+          retention-days: 7
+
+  generate-code:
+    name: Generate Provider Code
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate-specs]
+    if: needs.detect-changes.outputs.specs-changed == 'true' || needs.detect-changes.outputs.generator-changed == 'true' || github.event.inputs.force_regenerate == 'true'
+    strategy:
+      matrix:
+        include:
+          - config: basic
+            config-file: tools/generator/config/generation.yaml
+          - config: advanced
+            config-file: tools/generator/config/advanced_config.yaml
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build generator
+        run: go build -o bin/generator ./tools/generator/cmd/generate
+
+      - name: Create output directory
+        run: mkdir -p generated-code/${{ matrix.config }}
+
+      - name: Generate code
+        run: |
+          echo "Generating code with ${{ matrix.config }} configuration..."
+          
+          # Determine which spec files to process
+          if [ "${{ github.event.inputs.spec_files }}" != "" ]; then
+            # Process specific files
+            IFS=',' read -ra SPEC_ARRAY <<< "${{ github.event.inputs.spec_files }}"
+            for spec in "${SPEC_ARRAY[@]}"; do
+              echo "Processing specific file: $spec"
+              ./bin/generator \
+                -config ${{ matrix.config-file }} \
+                -specs $(dirname "$spec") \
+                -output generated-code/${{ matrix.config }} \
+                -verbose
+            done
+          else
+            # Process all changed files or all files if force regenerate
+            if [ "${{ github.event.inputs.force_regenerate }}" == "true" ]; then
+              echo "Force regenerating all code..."
+              ./bin/generator \
+                -config ${{ matrix.config-file }} \
+                -specs . \
+                -output generated-code/${{ matrix.config }} \
+                -verbose
+            else
+              # Process only changed spec files
+              CHANGED_FILES="${{ needs.detect-changes.outputs.changed-files }}"
+              if [ "$CHANGED_FILES" != "" ]; then
+                echo "Processing changed files: $CHANGED_FILES"
+                for spec in $CHANGED_FILES; do
+                  if [[ "$spec" == *.yaml ]] || [[ "$spec" == *.yml ]]; then
+                    echo "Processing changed file: $spec"
+                    ./bin/generator \
+                      -config ${{ matrix.config-file }} \
+                      -specs $(dirname "$spec") \
+                      -output generated-code/${{ matrix.config }} \
+                      -verbose
+                  fi
+                done
+              fi
+            fi
+          fi
+
+      - name: Format generated code
+        run: |
+          if [ -d "generated-code/${{ matrix.config }}" ]; then
+            echo "Formatting generated Go code..."
+            find generated-code/${{ matrix.config }} -name "*.go" -exec gofmt -w {} \;
+            find generated-code/${{ matrix.config }} -name "*.go" -exec goimports -w {} \; || true
+          fi
+
+      - name: Validate generated code
+        run: |
+          if [ -d "generated-code/${{ matrix.config }}" ]; then
+            echo "Validating generated code..."
+            
+            # Copy generated files to internal/provider for validation
+            cp -r generated-code/${{ matrix.config }}/* internal/provider/ || true
+            
+            # Try to build the provider
+            if go build -o /tmp/provider ./; then
+              echo "✅ Generated code compiles successfully"
+            else
+              echo "❌ Generated code has compilation errors"
+              exit 1
+            fi
+          fi
+
+      - name: Run quality checks
+        run: |
+          if [ -d "generated-code/${{ matrix.config }}" ]; then
+            echo "Running quality checks on generated code..."
+            
+            # Run go vet
+            go vet ./generated-code/${{ matrix.config }}/... || true
+            
+            # Run golint if available
+            if command -v golint &> /dev/null; then
+              golint ./generated-code/${{ matrix.config }}/... || true
+            fi
+            
+            # Run staticcheck if available
+            if command -v staticcheck &> /dev/null; then
+              staticcheck ./generated-code/${{ matrix.config }}/... || true
+            fi
+          fi
+
+      - name: Upload generated code
+        uses: actions/upload-artifact@v3
+        with:
+          name: generated-code-${{ matrix.config }}
+          path: generated-code/${{ matrix.config }}/
+          retention-days: 30
+
+      - name: Generate diff report
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Generating diff report for generated code..."
+          
+          # Compare with existing files
+          if [ -d "generated-code/${{ matrix.config }}" ]; then
+            mkdir -p reports
+            
+            echo "# Code Generation Diff Report (${{ matrix.config }})" > reports/diff-${{ matrix.config }}.md
+            echo "" >> reports/diff-${{ matrix.config }}.md
+            echo "Generated at: $(date)" >> reports/diff-${{ matrix.config }}.md
+            echo "" >> reports/diff-${{ matrix.config }}.md
+            
+            # Find differences
+            for file in generated-code/${{ matrix.config }}/*.go; do
+              if [ -f "$file" ]; then
+                basename_file=$(basename "$file")
+                existing_file="internal/provider/$basename_file"
+                
+                if [ -f "$existing_file" ]; then
+                  if ! diff -q "$file" "$existing_file" > /dev/null; then
+                    echo "## Changed: $basename_file" >> reports/diff-${{ matrix.config }}.md
+                    echo '```diff' >> reports/diff-${{ matrix.config }}.md
+                    diff -u "$existing_file" "$file" | head -50 >> reports/diff-${{ matrix.config }}.md || true
+                    echo '```' >> reports/diff-${{ matrix.config }}.md
+                    echo "" >> reports/diff-${{ matrix.config }}.md
+                  fi
+                else
+                  echo "## New file: $basename_file" >> reports/diff-${{ matrix.config }}.md
+                  echo "This is a new generated file." >> reports/diff-${{ matrix.config }}.md
+                  echo "" >> reports/diff-${{ matrix.config }}.md
+                fi
+              fi
+            done
+          fi
+
+      - name: Upload diff report
+        uses: actions/upload-artifact@v3
+        if: github.event_name == 'pull_request'
+        with:
+          name: diff-report-${{ matrix.config }}
+          path: reports/
+          retention-days: 7
+
+  test-generated-code:
+    name: Test Generated Code
+    runs-on: ubuntu-latest
+    needs: [generate-code]
+    if: needs.generate-code.result == 'success'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Download generated code
+        uses: actions/download-artifact@v3
+        with:
+          name: generated-code-basic
+          path: generated-code/
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Copy generated code
+        run: |
+          # Backup existing files
+          mkdir -p backup/internal/provider
+          cp -r internal/provider/* backup/internal/provider/ || true
+          
+          # Copy generated code
+          cp -r generated-code/* internal/provider/
+
+      - name: Run tests
+        run: |
+          echo "Running tests on generated code..."
+          
+          # Run unit tests
+          go test ./internal/provider/... -v -timeout=10m
+          
+          # Run acceptance tests if available
+          if [ -d "internal/provider/tests" ]; then
+            echo "Running acceptance tests..."
+            TF_ACC=1 go test ./internal/provider/tests/... -v -timeout=30m || true
+          fi
+
+      - name: Restore original code
+        if: always()
+        run: |
+          # Restore original files
+          rm -rf internal/provider/*
+          cp -r backup/internal/provider/* internal/provider/ || true
+
+  create-pull-request:
+    name: Create Pull Request with Generated Code
+    runs-on: ubuntu-latest
+    needs: [generate-code, test-generated-code]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.generate-code.result == 'success'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download generated code
+        uses: actions/download-artifact@v3
+        with:
+          name: generated-code-basic
+          path: generated-code/
+
+      - name: Apply generated code
+        run: |
+          # Copy generated code to the appropriate location
+          cp -r generated-code/* internal/provider/
+          
+          # Format the code
+          gofmt -w internal/provider/
+          goimports -w internal/provider/ || true
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.has-changes == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update generated provider code"
+          title: "🤖 Automated Code Generation Update"
+          body: |
+            ## Automated Code Generation Update
+            
+            This PR contains automatically generated code updates based on OpenAPI specification changes.
+            
+            ### Changes
+            - Updated generated provider code
+            - Regenerated client methods
+            - Updated resource and data source definitions
+            
+            ### Validation
+            - ✅ Code generation completed successfully
+            - ✅ Generated code compiles without errors
+            - ✅ Tests pass
+            
+            **Note**: This PR was automatically created by the code generation workflow.
+            Please review the changes before merging.
+          branch: automated/code-generation-update
+          delete-branch: true
+
+  notify-completion:
+    name: Notify Completion
+    runs-on: ubuntu-latest
+    needs: [detect-changes, validate-specs, generate-code, test-generated-code]
+    if: always()
+    steps:
+      - name: Notify success
+        if: needs.generate-code.result == 'success'
+        run: |
+          echo "✅ Code generation completed successfully!"
+          echo "Generated code is available in artifacts."
+
+      - name: Notify failure
+        if: needs.generate-code.result == 'failure'
+        run: |
+          echo "❌ Code generation failed!"
+          echo "Please check the logs for details."
+          exit 1

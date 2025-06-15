@@ -66,13 +66,33 @@ func (p *umbrellaProvider) Configure(ctx context.Context, req provider.Configure
 // Provider resources & data-sources
 // -----------------------------------------------------------------------------
 func (p *umbrellaProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{
-		NewDestinationListResource,
-		NewDestinationResource,
-		NewTunnelResource,
-		NewSAMLResource,
-		NewRulesetResource,
-		NewRuleResource,
+	// Initialize generated resources
+	InitializeGeneratedResources()
+
+	// Start with manually created resources (add as they are implemented)
+	resources := []func() resource.Resource{
+		// TODO: Add manually created resources here as they are implemented
+		// NewDestinationListResource,
+		// NewTunnelResource,
 	}
+
+	// Add generated resources
+	resources = append(resources, GetGeneratedRegistry().GetResources()...)
+
+	return resources
 }
-func (p *umbrellaProvider) DataSources(_ context.Context) []func() datasource.DataSource { return nil }
+
+func (p *umbrellaProvider) DataSources(_ context.Context) []func() datasource.DataSource {
+	// Initialize generated resources (includes data sources)
+	InitializeGeneratedResources()
+
+	// Start with manually created data sources (add as they are implemented)
+	dataSources := []func() datasource.DataSource{
+		// TODO: Add manually created data sources here as they are implemented
+	}
+
+	// Add generated data sources
+	dataSources = append(dataSources, GetGeneratedRegistry().GetDataSources()...)
+
+	return dataSources
+}

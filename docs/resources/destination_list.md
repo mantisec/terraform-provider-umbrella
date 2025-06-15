@@ -1,54 +1,42 @@
 ---
-page_title: "umbrella_destination_list Resource - terraform-provider-umbrella"
-subcategory: ""
+page_title: "umbrella_destination_list Resource - destination_list"
 description: |-
-  Manages Umbrella destination lists for policy enforcement.
+  Manages destination lists in Cisco Umbrella
 ---
 
 # umbrella_destination_list (Resource)
 
-Manages Umbrella destination lists for policy enforcement. Destination lists are collections of URLs, domains, or CIDR blocks that can be referenced in security policies.
+Manages destination lists in Cisco Umbrella. Destination lists allow you to create custom lists of domains, IPs, or URLs that can be used in policies to allow or block access.
 
 ## Example Usage
 
-### Domain Destination List
+### Basic Usage
 
-```terraform
-resource "umbrella_destination_list" "blocked_domains" {
-  name = "Blocked Domains"
-  type = "DOMAIN"
+Basic usage of the destination_list resource
+
+```hcl
+resource "umbrella_destination_list" "example" {
+  name = "example-destination-list"
+  access = "block"
   destinations = [
+    "example.com",
     "malicious-site.com",
-    "phishing-domain.net",
-    "suspicious-website.org"
+    "192.168.1.100"
   ]
 }
 ```
 
-### URL Destination List
+### Advanced Usage
 
-```terraform
-resource "umbrella_destination_list" "allowed_urls" {
-  name = "Allowed URLs"
-  type = "URL"
+```hcl
+resource "umbrella_destination_list" "advanced" {
+  name = "advanced-destination-list"
+  access = "allow"
+  is_global = false
   destinations = [
-    "https://trusted-site.com/api",
-    "https://corporate-portal.example.com",
-    "https://secure-service.net/endpoint"
-  ]
-}
-```
-
-### CIDR Destination List
-
-```terraform
-resource "umbrella_destination_list" "internal_networks" {
-  name = "Internal Network Ranges"
-  type = "CIDR"
-  destinations = [
-    "10.0.0.0/8",
-    "172.16.0.0/12",
-    "192.168.0.0/16"
+    "trusted-domain.com",
+    "internal-app.company.com",
+    "10.0.0.0/8"
   ]
 }
 ```
@@ -57,35 +45,40 @@ resource "umbrella_destination_list" "internal_networks" {
 
 ### Required
 
-- `name` (String) - Name of the destination list
-- `type` (String) - Type of destinations in the list. Must be one of: `URL`, `DOMAIN`, or `CIDR`
+- `name` (String) The name of the destination list
+- `access` (String) Access type for the destination list (allow/block)
 
 ### Optional
 
-- `destinations` (Set of String) - Set of destination entries. The format depends on the type:
-  - For `DOMAIN`: Domain names (e.g., `example.com`)
-  - For `URL`: Full URLs (e.g., `https://example.com/path`)
-  - For `CIDR`: IP address ranges in CIDR notation (e.g., `192.168.1.0/24`)
+- `destinations` (Set of String) List of destinations (domains, IPs, URLs)
+- `is_global` (Boolean) Whether this is a global destination list
 
 ### Read-Only
 
-- `id` (String) - Unique identifier of the destination list
+- `id` (String) The unique identifier for this destination list
+- `created_at` (String) Timestamp when the destination list was created
+- `modified_at` (String) Timestamp when the destination list was last modified
 
 ## Import
 
-Destination lists can be imported using their ID:
+Import is supported using the following syntax:
 
-```bash
-terraform import umbrella_destination_list.example 12345678
+```shell
+terraform import umbrella_destination_list.example 12345
 ```
+
+## API Endpoints
+
+This resource uses the following Cisco Umbrella API endpoints:
+
+- `POST /policies/v2/organizations/{orgId}/destinationlists` - Create destination list
+- `GET /policies/v2/organizations/{orgId}/destinationlists/{id}` - Read destination list
+- `PUT /policies/v2/organizations/{orgId}/destinationlists/{id}` - Update destination list
+- `DELETE /policies/v2/organizations/{orgId}/destinationlists/{id}` - Delete destination list
 
 ## Notes
 
-- Destination lists are referenced by name in policy rules
-- Changes to destinations within a list will trigger updates to the remote list
-- Empty destination lists are allowed and can be populated later
-- The maximum number of destinations per list depends on your Umbrella subscription
-- Destination validation is performed based on the list type:
-  - `DOMAIN` entries must be valid domain names
-  - `URL` entries must be valid URLs with protocol
-  - `CIDR` entries must be valid IP address ranges in CIDR notation
+- Destination lists can contain domains, IP addresses, CIDR blocks, or URLs
+- The `access` field determines whether destinations in the list are allowed or blocked
+- Global destination lists are shared across all policies in the organization
+- Changes to destination lists may take a few minutes to propagate across the Umbrella network

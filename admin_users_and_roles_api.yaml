@@ -1,0 +1,806 @@
+openapi: 3.0.1
+info:
+  title: Cisco Umbrella Users and Roles API
+  version: 2.0.0
+  description: Manage the Umbrella user accounts and roles.
+  contact:
+    name: Cloud Security Developer Community
+
+servers:
+  - url: https://api.umbrella.com/{basePath}
+    variables:
+      basePath:
+        default: admin/v2
+
+security:
+  - oauthFlow: []
+
+tags:
+  - name: Users
+  - name: Roles
+  - name: Umbrella
+
+paths:
+
+  '/users':
+    post:
+      tags:
+        - Users
+        - Umbrella
+      description: |-
+        Create an Umbrella user account with a designated role.
+
+        Once a user account is deleted, you can recreate the account through the `POST` operation.
+        When you recreate the user account, only set the `email` and `roleId` fields in the Request Body.
+
+        For example: {
+          "email": "DEVWKS-22@mailinator.com",
+          "roleId": 1
+        }
+
+        If you provide all fields for the user account in the Request Body, Umbrella returns an `HTTP/400` (Bad Request) with the
+        message: `Email already in use`.
+      summary: Create User
+      operationId: createUser
+      security:
+        - oauthFlow:
+            - admin.users:write
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                firstname:
+                  type: string
+                  description: The user's first name.
+                  minLength: 1
+                lastname:
+                  type: string
+                  description: The user's last name.
+                  minLength: 1
+                email:
+                  type: string
+                  description: The user's email address.
+                  minLength: 1
+                password:
+                  type: string
+                  description: The user's password.
+                  minLength: 1
+                roleId:
+                  type: integer
+                  description: The role ID.
+                  minimum: 1
+                timezone:
+                  type: string
+                  description: The user's timezone.
+                  minLength: 1
+              type: object
+              required:
+              - email
+              - password
+              - firstname
+              - lastname
+              - roleId
+              - timezone
+            example:
+              firstname: user first name
+              lastname: user last name
+              email: user email
+              password: user password
+              roleId: 1
+              timezone: user timezone name
+        description: Create a user account.
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserObject'
+              example:
+                id: 1234
+                firstname: user first name
+                lastname: user last name
+                email: user email
+                role: user role name
+                roleId: 2
+                timezone: user timezone name
+                status: user status
+                lastLoginTime: '2018-06-13T16:07:07.222Z'
+                twoFactorEnable: true
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+    get:
+      tags:
+        - Users
+        - Umbrella
+      description: List the user accounts in the organization.
+      summary: List Users
+      operationId: listUsers
+      security:
+        - oauthFlow:
+            - admin.users:read
+      parameters:
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/limitParam'
+      responses:
+        '200':
+          description: List the user accounts.
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserObject'
+              example:
+              - id: 1234
+                firstname: user first name
+                lastname: user last name
+                email: user email
+                role: user role name
+                roleId: 2
+                timezone: user timezone name
+                status: user status
+                lastLoginTime: '2018-06-13T16:07:07.222Z'
+                twoFactorEnable: true
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+  '/users/{userId}':
+    get:
+      tags:
+        - Users
+        - Umbrella
+      description: Get a user account.
+      summary: Get User
+      operationId: getUser
+      security:
+        - oauthFlow:
+            - admin.users:read
+      parameters:
+        - name: userId
+          description: The user's ID.
+          schema:
+            type: integer
+          in: path
+          required: true
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserObject'
+              example:
+                id: 1234
+                email: user email
+                role: user role name
+                roleId: 2
+                timezone: user timezone name
+                status: user status
+                twoFactorEnable: true
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+  
+    delete:
+      tags:
+        - Users
+        - Umbrella
+      description: Delete a user account.
+      summary: Delete User
+      operationId: deleteUser
+      security:
+        - oauthFlow:
+            - admin.users:write
+      parameters:
+        - name: userId
+          description: The user's ID.
+          schema:
+            type: integer
+          in: path
+          required: true
+      responses:
+        '204':
+          description: No Content
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+              example: ''
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+  '/roles':
+    get:
+      tags:
+        - Roles
+        - Umbrella
+      description: List the roles in the organization.
+      summary: List Roles
+      operationId: listRoles
+      security:
+        - oauthFlow:
+            - admin.roles:read
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleObject'
+              example:
+              - organizationId: 1
+                label: Full Admin
+                roleId: 1
+              - organizationId: 1
+                label: Read Only
+                roleId: 2
+              - organizationId: 1
+                label: Block Page Bypass
+                roleId: 3
+              - organizationId: 1
+                label: Reporting Only
+                roleId: 4
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+# passwordresets
+  '/passwordResets/{customerId}':
+    post:
+      tags:
+        - Users
+        - Umbrella
+      description: |-
+        Renew the passwords for the user accounts in the child (customer) organization of a provider organization.
+
+        For each email address, Umbrella identifies the user's account and renews the password for the user account.
+        Umbrella does not send a renewal request to the user account's email address.
+
+        Once an admin resets the user account password through the `/passwordResets/{customerId}` API endpoint,
+        a user can sign into their account on the child (customer) organization's managed console
+        and reset the password for their user account.
+
+        The `/passwordResets/{customerId}` API endpoint is only available for parent (provider) organizations
+        on the Multi-org or provider console.
+      summary: Create Password Resets
+      operationId: createPasswordResets
+      security:
+        - oauthFlow:
+          - admin.passwordreset:write
+      parameters:
+        - $ref: '#/components/parameters/customerIdParam'
+      requestBody:
+        description: |-
+          Provide a list of email addresses for the user accounts in a child (customer) organization.
+          Umbrella renews the password for each user account identified by the account's email address.
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Renew the passwords for the user accounts in the child (customer) organization.
+              properties:
+                adminEmails:
+                  type: array
+                  description: A list of email addresses for the user accounts in a child (customer) organization.
+                  items:
+                    type: string
+                    description: |-
+                      An email address used to renew the user account's password.
+                      Umbrella does not send an email to the user account's email address.
+                    example:
+                      xac@adc.com
+            example:
+              adminEmails:
+                - account@adc.com
+                - account@cisco.com
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Created a password renewal request for each user account identified by the account's email address.
+                nullable: true
+              example: ''
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+# organizations
+  '/organizations':
+    get:
+      tags:
+        - Users
+        - Umbrella
+      description: |-
+        Get information about your provider organizations.
+        To query the collection, provide an email address for a member of an Umbrella provider organization.
+      summary: Get Information About Organizations
+      operationId: getOrganizationInformation
+      security:
+        - oauthFlow:
+          - admin.organizations:read
+      parameters:
+        - $ref: '#/components/parameters/emailParam'
+        - $ref: '#/components/parameters/pageParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/limitParam'
+
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrgInformation'
+              example:
+                - organizationId: 2622114
+                  originId: 299707978
+                  resellerId: 0
+                  creatorUserId: 100000
+                  accountManagerUserId: 0
+                  organizationName: GTS - MSSP Console
+                  website: 'cisco.com'
+                  mspOrganizationId: 0
+                  organizationTypeId: 1
+                  createdAt: 1565986232
+                  modifiedAt: 1585081693
+                  salesforceAccountId: 0011T00002QfUGgQAN
+                  hasDelegatedAdmin: true
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404EmailError'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+
+components:
+  securitySchemes:
+    oauthFlow:
+      type: oauth2
+      description: client credential flow
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.umbrella.com/auth/v2/token
+          scopes:
+            admin.users:read: 'Read admin users'
+            admin.users:write: 'Write admin users'
+            admin.roles:read: 'Read admin roles'
+            admin.passwordreset:write: 'Write admin passwords'
+            admin.organizations:write: 'Read admin organizations'
+
+  headers:
+
+    Date:
+      schema:
+        type: string
+        format: iso-date-time
+      description: |-
+        The date and time of the request that is represented in ISO 8601 format.
+        The timestamp uses Greenwich Mean Time (GMT).
+      example: 'Date: Mon, 18 Apr 2022 11:11:11 GMT'
+
+    Content-Type:
+      schema:
+        type: string
+      description: The MIME content type of the response body.
+      example: application/json
+
+  parameters:
+
+    limitParam:
+      name: limit
+      in: query
+      description: |-
+        The number of records from the collection to return on the page.
+      required: false
+      schema:
+        default: 100
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+      example: 50
+
+    customerIdParam:
+      name: customerId
+      in: path
+      description: The child (customer) organization ID.
+      required: true
+      schema:
+        type: integer
+        format: int32
+      example: 1234556
+
+    pageParam:
+      name: page
+      in: query
+      description:
+        The number of a page in the collection.
+      schema:
+        type: integer
+        format: int32
+        default: 1
+        minimum: 1
+      required: false
+      example: 2
+
+    offsetParam:
+      in: query
+      name: offset
+      required: false
+      description: The place to start reading in the collection. The default offset is 0.
+      schema:
+        type: integer
+        format: int64
+        default: 0
+      example: 10
+
+    emailParam:
+      in: query
+      name: email
+      description: The email address for a member of a provider organization.
+      required: true
+      schema:
+        type: string
+      example: name@cisco.com
+
+  schemas:
+
+    OrgInformation:
+      type: object
+      required: [mspOrganizationId, organizationId, organizationName, organizationTypeId]
+      properties:
+        organizationId:
+          type: integer
+          format: int32
+          description: The organization ID.
+          example: 2622114
+        originId:
+          type: integer
+          description: The origin ID.
+          format: int32
+          example: 299707978
+        resellerId:
+          type: integer
+          description: The reseller ID.
+          example: 0
+        creatorUserId:
+          type: integer
+          description: The user ID of the creator.
+          example: 100000
+        accountManagerUserId:
+          type: integer
+          description: The user ID of the account manager.
+          example: 0
+        organizationName:
+          type: string
+          description: The name of the organization.
+          example: GTS Test - MSSP Console
+        website:
+          type: string
+          description: The URL for the organization.
+          example: cisco.com
+        mspOrganizationId:
+          type: integer
+          format: int32
+          description: The managed service provider (MSP) ID.
+          example: 12345698
+        organizationTypeId:
+          type: integer
+          format: int32
+          description: The type ID of the organization.
+          example: 4
+        createdAt:
+          type: integer
+          format: int32
+          description: The date when the organization was created.
+          example: 1565986232
+        modifiedAt:
+          type: integer
+          format: int32
+          description: The date when the organization was last modified.
+          example: 1585081693
+        salesforceAccountId:
+          type: string
+          description: The Salesforce account ID.
+          example: 0011T00002QfUGgQAN
+        hasDelegatedAdmin:
+          type: boolean
+          description: Specifies whether the organization has assigned an administrator.
+          example: true
+      example:
+        organizationId: 2622114
+        originId: 299707978
+        resellerId: 0
+        creatorUserId: 100000
+        accountManagerUserId: 0
+        organizationName: GTS Test - MSSP Console
+        website: 'cisco.com'
+        mspOrganizationId: 1223445
+        organizationTypeId: 4
+        createdAt: 1565986232
+        modifiedAt: 1585081693
+        salesforceAccountId: 0011T00002QfUGgQAN
+        hasDelegatedAdmin: true
+
+    # user
+    UserObject:
+      type: object
+      properties:
+        firstname:
+          type: string
+          description: The user's first name.
+          minLength: 1
+        lastname:
+          type: string
+          description: The user's last name.
+          minLength: 1
+        email:
+          type: string
+          description: The user's email address.
+          minLength: 1
+        password:
+          type: string
+          description: The user's password.
+          minLength: 1
+        roleId:
+          type: integer
+          description: The role ID.
+          minimum: 1
+        role:
+          type: string
+          description: The user's role.
+        timezone:
+          type: string
+          description: The user's timezone.
+          minLength: 1
+        status:
+          type: string
+          description: The user's status.
+          example: 'on'
+        lastLoginTime:
+          type: string
+          format: date-time
+          description: The user's last login date and time (ISO8601 timestamp).
+          example: '2018-06-13T16:07:07.222Z'
+        twoFactorEnable:
+          type: boolean
+          description: Specifies whether two-factor authentication is enabled.
+      required:
+        - id
+        - email
+        - role
+        - roleId
+        - timezone
+        - status
+        - twoFactorEnable
+      example:
+        id: 123
+        email: myemail.com
+        role: full admin
+        roleId: 1
+        timezone: '2018-06-13T16:07:07.222Z'
+        status: 'on'
+        twoFactorEnable: true
+
+    RoleObject:
+      type: object
+      properties:
+        roleId:
+          type: integer
+          description: The ID of the role.
+        label:
+          type: string
+          description: The label for the role.
+        organizationId:
+          type: integer
+          description: The organization ID.
+      required:
+        - roleId
+        - label
+        - organizationId
+      example:
+        organizationId: 1
+        label: Full Admin
+        roleId: 1
+
+  responses:
+
+    400Error:
+      description: Bad Request
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: Invalid request
+
+    401Error:
+      description: Unauthorized
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: Unauthorized request
+
+    403Error:
+      description: Forbidden
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: Forbidden
+
+    404EmailError:
+      description: Not Found
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: |-
+              The user identified by the email address
+              does not exist in the organization.
+
+    404Error:
+      description: Not Found
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: Not Found
+
+    500Error:
+      description: Internal Server Error
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: Server error

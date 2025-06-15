@@ -1,0 +1,125 @@
+package {{.PackageName}}
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+// {{.StructName}} implements the {{.ResourceName}} resource
+type {{.StructName}} struct {
+	client *apiClient
+}
+
+// {{.ResourceName}}Model represents the resource data model
+type {{.ResourceName}}Model struct {
+{{- range .Schema.Attributes}}
+	{{pascalCase .Name}} {{.Type}} `tfsdk:"{{.Name}}"`
+{{- end}}
+}
+
+// New{{.StructName}} creates a new {{.ResourceName}} resource
+func New{{.StructName}}() resource.Resource {
+	return &{{.StructName}}{}
+}
+
+// Metadata returns the resource type name
+func (r *{{.StructName}}) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = "{{.TypeName}}"
+}
+
+// Configure configures the resource with the provider client
+func (r *{{.StructName}}) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	client, ok := req.ProviderData.(*apiClient)
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected Resource Configure Type", "Expected *apiClient")
+		return
+	}
+
+	r.client = client
+}
+
+// Schema defines the resource schema
+func (r *{{.StructName}}) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "{{.ResourceName}} resource",
+		Attributes: map[string]schema.Attribute{
+{{- range .Schema.Attributes}}
+			"{{.Name}}": schema.{{if eq .Type "types.String"}}String{{else if eq .Type "types.Int64"}}Int64{{else if eq .Type "types.Bool"}}Bool{{else if eq .Type "types.Set"}}Set{{else}}String{{end}}Attribute{
+				{{- if .Required}}Required: true,{{end}}
+				{{- if .Optional}}Optional: true,{{end}}
+				{{- if .Computed}}Computed: true,{{end}}
+				{{- if .Description}}Description: "{{.Description}}",{{end}}
+				{{- if eq .Type "types.Set"}}ElementType: types.StringType,{{end}}
+			},
+{{- end}}
+		},
+	}
+}
+
+{{- if .CreateEndpoint}}
+// Create creates a new {{.ResourceName}}
+func (r *{{.StructName}}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan {{.ResourceName}}Model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement create logic using {{.CreateEndpoint.Method}} {{.CreateEndpoint.Path}}
+	
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+{{- end}}
+
+{{- if .ReadEndpoint}}
+// Read reads the {{.ResourceName}}
+func (r *{{.StructName}}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state {{.ResourceName}}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using {{.ReadEndpoint.Method}} {{.ReadEndpoint.Path}}
+	
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+{{- end}}
+
+{{- if .UpdateEndpoint}}
+// Update updates the {{.ResourceName}}
+func (r *{{.StructName}}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan {{.ResourceName}}Model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement update logic using {{.UpdateEndpoint.Method}} {{.UpdateEndpoint.Path}}
+	
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+{{- end}}
+
+{{- if .DeleteEndpoint}}
+// Delete deletes the {{.ResourceName}}
+func (r *{{.StructName}}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state {{.ResourceName}}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement delete logic using {{.DeleteEndpoint.Method}} {{.DeleteEndpoint.Path}}
+}
+{{- end}}

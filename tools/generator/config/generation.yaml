@@ -1,0 +1,65 @@
+# Terraform Provider Code Generation Configuration
+
+# Global settings
+global:
+  provider_name: "umbrella"
+  package_name: "provider"
+  go_module: "github.com/mantisec/terraform-provider-umbrella"
+
+# Resource generation settings
+resources:
+  # Default settings for all resources
+  defaults:
+    generate_crud: true
+    generate_import: true
+    generate_docs: true
+    
+  # Resource-specific overrides
+  overrides:
+    # Example: Override settings for specific resources
+    # destination_list:
+    #   generate_import: false
+
+# Data source generation settings
+data_sources:
+  defaults:
+    generate_read: true
+    generate_docs: true
+
+# Template settings
+templates:
+  resource_template: "templates/resource.go.tmpl"
+  data_source_template: "templates/data_source.go.tmpl"
+  client_method_template: "templates/client_method.go.tmpl"
+
+# API parsing settings
+parsing:
+  # Skip endpoints that match these patterns
+  skip_endpoints:
+    - "/token"  # Auth endpoints typically don't need resources
+  
+  # Resource naming conventions
+  naming:
+    # Convert operation IDs to resource names
+    operation_id_to_resource: true
+    # Remove common prefixes/suffixes
+    strip_prefixes: ["create", "get", "update", "delete", "list"]
+    strip_suffixes: ["api", "endpoint"]
+
+# OAuth2 scope mapping
+oauth2:
+  # Map OAuth2 scopes to Terraform operations
+  scope_mappings:
+    read: ["GET"]
+    write: ["POST", "PUT", "PATCH"]
+    delete: ["DELETE"]
+
+# Output settings
+output:
+  # File naming patterns
+  resource_file_pattern: "resource_%s.go"
+  data_source_file_pattern: "data_source_%s.go"
+  
+  # Code formatting
+  format_code: true
+  add_license_header: false
