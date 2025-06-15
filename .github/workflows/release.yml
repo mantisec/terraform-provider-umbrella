@@ -4,6 +4,18 @@ on:
   push:
     tags:
       - 'v*'
+  # Allow manual triggering of releases
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v0.0.2)'
+        required: true
+        type: string
+      draft:
+        description: 'Create as draft release'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -24,21 +36,42 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
       
+      - name: Check GPG secrets
+        run: |
+          if [ -z "${{ secrets.GPG_PRIVATE_KEY }}" ]; then
+            echo "⚠️ GPG_PRIVATE_KEY secret is not set"
+            echo "Releases will be created without GPG signing"
+          else
+            echo "✅ GPG_PRIVATE_KEY secret is configured"
+          fi
+      
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
         id: import_gpg
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
+        continue-on-error: true
       
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean
+          args: release --clean ${{ github.event.inputs.draft == 'true' && '--draft' || '' }}
         env:
           # GitHub token, automatically provided to the action
           # (no need to define this secret in the repo settings)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+      
+      - name: Release Summary
+        run: |
+          echo "🎉 Release workflow completed!"
+          echo "📦 Release created for: ${{ github.ref_name || github.event.inputs.version }}"
+          echo "🔗 Check releases at: ${{ github.server_url }}/${{ github.repository }}/releases"
+          if [ "${{ steps.import_gpg.outcome }}" = "failure" ]; then
+            echo "⚠️ GPG signing failed - release created without signatures"
+          else
+            echo "✅ Release includes GPG signatures"
+          fi

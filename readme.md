@@ -307,26 +307,53 @@ This provider is configured for automated publishing to the Terraform Registry u
 
 ### Release Process
 
-1. **Create a release** using the provided script:
+1. **Create a release** using the provided scripts:
    ```bash
    # On Linux/macOS
-   ./scripts/release.sh 1.0.0
+   ./scripts/create-release.sh
    
-   # On Windows
-   bash scripts/release.sh 1.0.0
+   # On Windows (PowerShell)
+   .\scripts\create-release.ps1
+   
+   # Or specify version directly
+   .\scripts\create-release.ps1 -Version "v0.0.2"
    ```
 
 2. **Manual release** (alternative):
    ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
+   git tag v0.0.2
+   git push origin v0.0.2
    ```
 
-3. **GitHub Actions will automatically**:
-   - Build binaries for multiple platforms
-   - Sign releases with GPG
+3. **Manual trigger** from GitHub Actions:
+   - Go to Actions → Release workflow
+   - Click "Run workflow"
+   - Enter version (e.g., v0.0.2)
+   - Optionally create as draft
+
+4. **GitHub Actions will automatically**:
+   - Build binaries for multiple platforms (Linux, macOS, Windows, FreeBSD)
+   - Sign releases with GPG (if configured)
+   - Create SHA256 checksums
    - Publish to GitHub Releases
-   - Update Terraform Registry
+   - Include Terraform Registry manifest
+
+### Release Requirements
+
+- **GPG Signing** (optional but recommended):
+  - Set `GPG_PRIVATE_KEY` secret in repository settings
+  - Set `PASSPHRASE` secret for GPG key
+- **Permissions**: Repository must have Actions enabled with write permissions
+- **Tag Format**: Must follow semantic versioning (e.g., v1.0.0, v0.2.1)
+
+### Troubleshooting Releases
+
+If releases aren't being created:
+1. Check that you're pushing **tags**, not just commits
+2. Verify GitHub Actions are enabled in repository settings
+3. Check Actions tab for workflow run status and errors
+4. Ensure GPG secrets are configured (or disable signing temporarily)
+5. See [`RELEASE_WORKFLOW_GUIDE.md`](./RELEASE_WORKFLOW_GUIDE.md) for detailed troubleshooting
 
 ## Changelog
 
