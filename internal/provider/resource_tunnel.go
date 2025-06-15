@@ -18,13 +18,17 @@ import (
 type tunnelResource struct{ client *apiClient }
 
 type tunnelModel struct {
-	ID           types.String `tfsdk:"id"`
-	Name         types.String `tfsdk:"name"`
-	DeviceIP     types.String `tfsdk:"device_ip"`
-	PreSharedKey types.String `tfsdk:"pre_shared_key"`
-	Status       types.String `tfsdk:"status"`
-	CreatedAt    types.String `tfsdk:"created_at"`
-	UpdatedAt    types.String `tfsdk:"updated_at"`
+	ID             types.String `tfsdk:"id"`
+	Name           types.String `tfsdk:"name"`
+	SiteOriginID   types.Int64  `tfsdk:"site_origin_id"`
+	DeviceIP       types.String `tfsdk:"device_ip"`
+	PreSharedKey   types.String `tfsdk:"pre_shared_key"`
+	LocalNetworks  types.List   `tfsdk:"local_networks"`
+	TunnelType     types.String `tfsdk:"tunnel_type"`
+	Status         types.String `tfsdk:"status"`
+	TunnelEndpoint types.String `tfsdk:"tunnel_endpoint"`
+	CreatedAt      types.String `tfsdk:"created_at"`
+	UpdatedAt      types.String `tfsdk:"updated_at"`
 }
 
 func NewTunnelResource() resource.Resource { return &tunnelResource{} }
@@ -45,13 +49,17 @@ func (r *tunnelResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 	resp.Schema = schema.Schema{
 		Description: "Umbrella IPSec Tunnel for Secure Internet Gateway",
 		Attributes: map[string]schema.Attribute{
-			"id":             schema.StringAttribute{Computed: true, Description: "Tunnel ID"},
-			"name":           schema.StringAttribute{Required: true, Description: "Tunnel name"},
-			"device_ip":      schema.StringAttribute{Required: true, Description: "Device IP address for the tunnel"},
-			"pre_shared_key": schema.StringAttribute{Required: true, Sensitive: true, Description: "Pre-shared key for IPSec tunnel"},
-			"status":         schema.StringAttribute{Computed: true, Description: "Tunnel status"},
-			"created_at":     schema.StringAttribute{Computed: true, Description: "Creation timestamp"},
-			"updated_at":     schema.StringAttribute{Computed: true, Description: "Last update timestamp"},
+			"id":              schema.StringAttribute{Computed: true, Description: "Tunnel ID"},
+			"name":            schema.StringAttribute{Required: true, Description: "Tunnel name"},
+			"site_origin_id":  schema.Int64Attribute{Required: true, Description: "Site origin ID to associate with the tunnel"},
+			"device_ip":       schema.StringAttribute{Required: true, Description: "Public IP address of the device that will establish the IPSec tunnel"},
+			"pre_shared_key":  schema.StringAttribute{Required: true, Sensitive: true, Description: "Pre-shared key for IPSec authentication"},
+			"local_networks":  schema.ListAttribute{ElementType: types.StringType, Required: true, Description: "List of local network CIDR blocks that will use this tunnel"},
+			"tunnel_type":     schema.StringAttribute{Optional: true, Computed: true, Description: "Type of tunnel (default: IPSEC)"},
+			"status":          schema.StringAttribute{Computed: true, Description: "Current status of the tunnel"},
+			"tunnel_endpoint": schema.StringAttribute{Computed: true, Description: "Umbrella tunnel endpoint IP address"},
+			"created_at":      schema.StringAttribute{Computed: true, Description: "Creation timestamp in ISO 8601 format"},
+			"updated_at":      schema.StringAttribute{Computed: true, Description: "Last update timestamp in ISO 8601 format"},
 		},
 	}
 }
@@ -65,10 +73,26 @@ func (r *tunnelResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	payload := map[string]string{
-		"name":         plan.Name.ValueString(),
-		"deviceIp":     plan.DeviceIP.ValueString(),
-		"preSharedKey": plan.PreSharedKey.ValueString(),
+	// Extract local networks from the list
+	var localNetworks []string
+	resp.Diagnostics.Append(plan.LocalNetworks.ElementsAs(ctx, &localNetworks, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Set default tunnel type if not specified
+	tunnelType := plan.TunnelType.ValueString()
+	if tunnelType == "" {
+		tunnelType = "IPSEC"
+	}
+
+	payload := map[string]interface{}{
+		"name":          plan.Name.ValueString(),
+		"siteOriginId":  plan.SiteOriginID.ValueInt64(),
+		"deviceIp":      plan.DeviceIP.ValueString(),
+		"preSharedKey":  plan.PreSharedKey.ValueString(),
+		"localNetworks": localNetworks,
+		"tunnelType":    tunnelType,
 	}
 	body, _ := json.Marshal(payload)
 
@@ -85,20 +109,35 @@ func (r *tunnelResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	var data struct {
-		ID        string `json:"id"`
-		Name      string `json:"name"`
-		DeviceIP  string `json:"deviceIp"`
-		Status    string `json:"status"`
-		CreatedAt string `json:"createdAt"`
-		UpdatedAt string `json:"updatedAt"`
+		ID             string   `json:"id"`
+		Name           string   `json:"name"`
+		SiteOriginID   int64    `json:"siteOriginId"`
+		DeviceIP       string   `json:"deviceIp"`
+		LocalNetworks  []string `json:"localNetworks"`
+		TunnelType     string   `json:"tunnelType"`
+		Status         string   `json:"status"`
+		TunnelEndpoint string   `json:"tunnelEndpoint"`
+		CreatedAt      string   `json:"createdAt"`
+		UpdatedAt      string   `json:"updatedAt"`
 	}
 	if err := json.NewDecoder(apiResp.Body).Decode(&data); err != nil {
 		resp.Diagnostics.AddError("decode", err.Error())
 		return
 	}
 
+	// Convert local networks back to types.List
+	localNetworksList, diags := types.ListValueFrom(ctx, types.StringType, data.LocalNetworks)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	plan.ID = types.StringValue(data.ID)
+	plan.SiteOriginID = types.Int64Value(data.SiteOriginID)
+	plan.LocalNetworks = localNetworksList
+	plan.TunnelType = types.StringValue(data.TunnelType)
 	plan.Status = types.StringValue(data.Status)
+	plan.TunnelEndpoint = types.StringValue(data.TunnelEndpoint)
 	plan.CreatedAt = types.StringValue(data.CreatedAt)
 	plan.UpdatedAt = types.StringValue(data.UpdatedAt)
 
@@ -130,21 +169,36 @@ func (r *tunnelResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	var tunnel struct {
-		ID        string `json:"id"`
-		Name      string `json:"name"`
-		DeviceIP  string `json:"deviceIp"`
-		Status    string `json:"status"`
-		CreatedAt string `json:"createdAt"`
-		UpdatedAt string `json:"updatedAt"`
+		ID             string   `json:"id"`
+		Name           string   `json:"name"`
+		SiteOriginID   int64    `json:"siteOriginId"`
+		DeviceIP       string   `json:"deviceIp"`
+		LocalNetworks  []string `json:"localNetworks"`
+		TunnelType     string   `json:"tunnelType"`
+		Status         string   `json:"status"`
+		TunnelEndpoint string   `json:"tunnelEndpoint"`
+		CreatedAt      string   `json:"createdAt"`
+		UpdatedAt      string   `json:"updatedAt"`
 	}
 	if err := json.NewDecoder(apiResp.Body).Decode(&tunnel); err != nil {
 		resp.Diagnostics.AddError("decode", err.Error())
 		return
 	}
 
+	// Convert local networks to types.List
+	localNetworksList, diags := types.ListValueFrom(ctx, types.StringType, tunnel.LocalNetworks)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	state.Name = types.StringValue(tunnel.Name)
+	state.SiteOriginID = types.Int64Value(tunnel.SiteOriginID)
 	state.DeviceIP = types.StringValue(tunnel.DeviceIP)
+	state.LocalNetworks = localNetworksList
+	state.TunnelType = types.StringValue(tunnel.TunnelType)
 	state.Status = types.StringValue(tunnel.Status)
+	state.TunnelEndpoint = types.StringValue(tunnel.TunnelEndpoint)
 	state.CreatedAt = types.StringValue(tunnel.CreatedAt)
 	state.UpdatedAt = types.StringValue(tunnel.UpdatedAt)
 
@@ -160,11 +214,30 @@ func (r *tunnelResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Check if any updateable fields have changed
-	if plan.Name != state.Name || plan.DeviceIP != state.DeviceIP || plan.PreSharedKey != state.PreSharedKey {
-		payload := map[string]string{
-			"name":         plan.Name.ValueString(),
-			"deviceIp":     plan.DeviceIP.ValueString(),
-			"preSharedKey": plan.PreSharedKey.ValueString(),
+	if plan.Name != state.Name || plan.SiteOriginID != state.SiteOriginID || plan.DeviceIP != state.DeviceIP ||
+		plan.PreSharedKey != state.PreSharedKey || !plan.LocalNetworks.Equal(state.LocalNetworks) ||
+		plan.TunnelType != state.TunnelType {
+
+		// Extract local networks from the list
+		var localNetworks []string
+		resp.Diagnostics.Append(plan.LocalNetworks.ElementsAs(ctx, &localNetworks, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		// Set default tunnel type if not specified
+		tunnelType := plan.TunnelType.ValueString()
+		if tunnelType == "" {
+			tunnelType = "IPSEC"
+		}
+
+		payload := map[string]interface{}{
+			"name":          plan.Name.ValueString(),
+			"siteOriginId":  plan.SiteOriginID.ValueInt64(),
+			"deviceIp":      plan.DeviceIP.ValueString(),
+			"preSharedKey":  plan.PreSharedKey.ValueString(),
+			"localNetworks": localNetworks,
+			"tunnelType":    tunnelType,
 		}
 		body, _ := json.Marshal(payload)
 
@@ -181,15 +254,34 @@ func (r *tunnelResource) Update(ctx context.Context, req resource.UpdateRequest,
 		}
 
 		var data struct {
-			Status    string `json:"status"`
-			UpdatedAt string `json:"updatedAt"`
+			ID             string   `json:"id"`
+			Name           string   `json:"name"`
+			SiteOriginID   int64    `json:"siteOriginId"`
+			DeviceIP       string   `json:"deviceIp"`
+			LocalNetworks  []string `json:"localNetworks"`
+			TunnelType     string   `json:"tunnelType"`
+			Status         string   `json:"status"`
+			TunnelEndpoint string   `json:"tunnelEndpoint"`
+			CreatedAt      string   `json:"createdAt"`
+			UpdatedAt      string   `json:"updatedAt"`
 		}
 		if err := json.NewDecoder(apiResp.Body).Decode(&data); err != nil {
 			resp.Diagnostics.AddError("decode", err.Error())
 			return
 		}
 
+		// Convert local networks back to types.List
+		localNetworksList, diags := types.ListValueFrom(ctx, types.StringType, data.LocalNetworks)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		plan.SiteOriginID = types.Int64Value(data.SiteOriginID)
+		plan.LocalNetworks = localNetworksList
+		plan.TunnelType = types.StringValue(data.TunnelType)
 		plan.Status = types.StringValue(data.Status)
+		plan.TunnelEndpoint = types.StringValue(data.TunnelEndpoint)
 		plan.UpdatedAt = types.StringValue(data.UpdatedAt)
 	}
 
