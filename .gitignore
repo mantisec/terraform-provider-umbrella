@@ -85,3 +85,6 @@ dist/
 *_checksums.txt
 *_SHA256SUMS*
 *.sig
+
+# Test Coverage
+coverage
