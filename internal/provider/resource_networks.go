@@ -72,6 +72,19 @@ func (r *NetworksResource) Create(ctx context.Context, req resource.CreateReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
+// Read reads the networks resource
+func (r *NetworksResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state networksModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /networks/{networkId}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
 // Update updates the networks
 func (r *NetworksResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan networksModel

@@ -69,3 +69,40 @@ func (r *IdentitiesResource) Create(ctx context.Context, req resource.CreateRequ
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
+
+// Read reads the identities resource
+func (r *IdentitiesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state identitiesModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /identities
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+// Update updates the identities resource
+func (r *IdentitiesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan identitiesModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement update logic using PUT /identities
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+// Delete deletes the identities resource
+func (r *IdentitiesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state identitiesModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement delete logic using DELETE /identities
+}

@@ -65,3 +65,40 @@ func (r *CategorizationResource) Create(ctx context.Context, req resource.Create
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
+
+// Read reads the categorization resource
+func (r *CategorizationResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state categorizationModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /domains/categorization
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+// Update updates the categorization resource
+func (r *CategorizationResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan categorizationModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement update logic using PUT /domains/categorization
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+// Delete deletes the categorization resource
+func (r *CategorizationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state categorizationModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement delete logic using DELETE /domains/categorization
+}

@@ -66,6 +66,19 @@ func (r *DestinationlistsResource) Create(ctx context.Context, req resource.Crea
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
+// Read reads the destinationlists resource
+func (r *DestinationlistsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state destinationlistsModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /destinationlists/{destinationListId}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
 // Update updates the destinationlists
 func (r *DestinationlistsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan destinationlistsModel

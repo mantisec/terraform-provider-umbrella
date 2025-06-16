@@ -66,6 +66,19 @@ func (r *InternaldomainsResource) Create(ctx context.Context, req resource.Creat
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
+// Read reads the internaldomains resource
+func (r *InternaldomainsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state internaldomainsModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /internaldomains/{internalDomainId}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
 // Update updates the internaldomains
 func (r *InternaldomainsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan internaldomainsModel

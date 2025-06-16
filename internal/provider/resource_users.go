@@ -66,6 +66,32 @@ func (r *UsersResource) Create(ctx context.Context, req resource.CreateRequest, 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
+// Read reads the users resource
+func (r *UsersResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state usersModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /users/{userId}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+// Update updates the users resource
+func (r *UsersResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan usersModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement update logic using PUT /users/{userId}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
 // Delete deletes the users
 func (r *UsersResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state usersModel

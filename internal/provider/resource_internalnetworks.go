@@ -66,6 +66,19 @@ func (r *InternalnetworksResource) Create(ctx context.Context, req resource.Crea
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
+// Read reads the internalnetworks resource
+func (r *InternalnetworksResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state internalnetworksModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /internalnetworks/{internalNetworkId}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
 // Update updates the internalnetworks
 func (r *InternalnetworksResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan internalnetworksModel

@@ -53,6 +53,45 @@ func (r *RemoveResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 	}
 }
 
+// Create creates a new remove
+func (r *RemoveResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan removeModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement create logic using DELETE /destinationlists/{destinationListId}/destinations/remove
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+// Read reads the remove resource
+func (r *RemoveResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state removeModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /destinationlists/{destinationListId}/destinations/remove
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+// Update updates the remove resource
+func (r *RemoveResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan removeModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement update logic using PUT /destinationlists/{destinationListId}/destinations/remove
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
 // Delete deletes the remove
 func (r *RemoveResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state removeModel

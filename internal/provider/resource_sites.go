@@ -66,6 +66,19 @@ func (r *SitesResource) Create(ctx context.Context, req resource.CreateRequest, 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
+// Read reads the sites resource
+func (r *SitesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state sitesModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement read logic using GET /sites/{siteId}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
 // Update updates the sites
 func (r *SitesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan sitesModel
