@@ -48,6 +48,27 @@ clean:
 	rm -f $(BINARY_NAME)-*
 	rm -f coverage.out coverage.html
 
+# Clean generated files from API specs
+.PHONY: clean-generated
+clean-generated:
+	@echo "Cleaning generated files from API specifications..."
+	# Generated Go files in internal/provider/
+	rm -f internal/provider/generated_*.go
+	# Generated test files (keeping manually created ones)
+	rm -f internal/provider/tests/*_test.go
+	# Keep provider_test.go as it's manually created
+	git checkout HEAD -- internal/provider/tests/provider_test.go 2>/dev/null || true
+	# Generated documentation files
+	rm -f docs/resources/*.md
+	# Keep index.md as it's manually maintained
+	git checkout HEAD -- docs/index.md 2>/dev/null || true
+	@echo "Generated files cleaned successfully!"
+
+# Clean all (build artifacts + generated files)
+.PHONY: clean-all
+clean-all: clean clean-generated
+	@echo "All build artifacts and generated files cleaned!"
+
 # Install dependencies
 .PHONY: deps
 deps:
@@ -121,6 +142,8 @@ help:
 	@echo "  fmt               - Format Go code"
 	@echo "  lint              - Run linter"
 	@echo "  clean             - Clean build artifacts"
+	@echo "  clean-generated   - Clean generated files from API specs"
+	@echo "  clean-all         - Clean build artifacts + generated files"
 	@echo "  deps              - Install/update dependencies"
 	@echo "  docs              - Generate documentation"
 	@echo "  generate          - Generate provider code from OpenAPI specs"
