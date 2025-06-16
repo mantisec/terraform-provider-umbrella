@@ -1,33 +1,13 @@
 {
-	"name": "Terraform Provider Umbrella",
-	"image": "mcr.microsoft.com/devcontainers/go:1.21-bullseye",
-
-	// Features to add to the dev container
-	"features": {
-		"ghcr.io/devcontainers/features/terraform:1": {
-			"version": "latest",
-			"tflint": "latest",
-			"terragrunt": "latest"
-		},
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {
-			"version": "latest",
-			"dockerDashComposeVersion": "v2"
-		},
-		"ghcr.io/devcontainers/features/github-cli:1": {
-			"version": "latest"
-		},
-		"ghcr.io/devcontainers/features/common-utils:2": {
-			"installZsh": true,
-			"configureZshAsDefaultShell": true,
-			"installOhMyZsh": true,
-			"upgradePackages": true,
-			"username": "vscode",
-			"userUid": "automatic",
-			"userGid": "automatic"
-		}
-	},
-
-	// Configure tool-specific properties
+	"name": "dev",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "dev",
+	"workspaceFolder": "/workspaces",
+	"mounts": [
+		"type=bind,source=${localWorkspaceFolder},target=/workspaces,consistency=cached",
+		"source=${localEnv:APPDATA}/Code/User/globalStorage,target=/home/vscode/.vscode-server/data/User/globalStorage,type=bind,consistency=cached",
+		"source=${localEnv:APPDATA}/Code/User/settings.json,target=/home/vscode/.vscode-server/data/User/settings.json,type=bind,consistency=cached"
+	],
 	"customizations": {
 		"vscode": {
 			"settings": {
@@ -61,42 +41,12 @@
 				"golang.go",
 				"hashicorp.terraform",
 				"ms-vscode.makefile-tools",
-				"redhat.vscode-yaml",
 				"ms-vscode.vscode-json",
-				"GitHub.copilot",
-				"GitHub.copilot-chat",
 				"ms-vscode.remote-containers",
-				"eamodio.gitlens",
-				"streetsidesoftware.code-spell-checker",
-				"ms-vscode.test-adapter-converter",
-				"hbenl.vscode-test-explorer",
 				"rooveterinaryinc.roo-code"
 			]
 		}
 	},
-
-	// Use 'forwardPorts' to make a list of ports inside the container available locally
-	"forwardPorts": [8080, 9090],
-
-	// Use 'postCreateCommand' to run commands after the container is created
-	"postCreateCommand": ".devcontainer/setup.sh",
-
-	// Configure container user
-	"remoteUser": "vscode",
-
-	// Mount the local filesystem
-	"mounts": [
-		"source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached",
-		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
-		// Share VS Code extension settings from Windows host
-		"source=${localEnv:USERPROFILE}/.vscode/extensions,target=/home/vscode/.vscode-server/extensions,type=bind,consistency=cached",
-		// Share Roo extension configuration
-		"source=${localEnv:APPDATA}/Code/User/globalStorage,target=/home/vscode/.vscode-server/data/User/globalStorage,type=bind,consistency=cached",
-		// Share VS Code user settings
-		"source=${localEnv:APPDATA}/Code/User/settings.json,target=/home/vscode/.vscode-server/data/User/settings.json,type=bind,consistency=cached"
-	],
-
-	// Environment variables
 	"containerEnv": {
 		"GO111MODULE": "on",
 		"GOPROXY": "https://proxy.golang.org,direct",
@@ -104,21 +54,6 @@
 		"CGO_ENABLED": "0",
 		"TF_LOG": "INFO",
 		"TF_CLI_CONFIG_FILE": "/workspaces/${localWorkspaceFolderBasename}/.terraformrc"
-	},
+	}
 
-	// Lifecycle scripts
-	"onCreateCommand": ".devcontainer/on-create.sh",
-	"updateContentCommand": ".devcontainer/update-content.sh",
-
-	// Container configuration
-	"runArgs": [
-		"--init",
-		"--privileged"
-	],
-
-	// Workspace folder
-	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-
-	// Override the default command
-	"overrideCommand": false
 }
