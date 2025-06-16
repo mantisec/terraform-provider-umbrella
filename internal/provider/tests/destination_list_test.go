@@ -1,11 +1,13 @@
-package provider
+package provider_test
 
 import (
 	"fmt"
 	"regexp"
 	"testing"
 
+	tfresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/mantisec/terraform-provider-umbrella/internal/provider"
 )
 
 func TestDestinationListResource_basic(t *testing.T) {
@@ -156,10 +158,10 @@ resource "umbrella_destination_list" "test" {
 
 // Unit tests for schema
 func TestDestinationListResource_Schema(t *testing.T) {
-	r := NewGeneratedDestinationListResource()
+	r := provider.NewGeneratedDestinationListResource()
 
 	// Test that the resource implements the correct interface
-	var _ resource.Resource = r
+	var _ tfresource.Resource = r
 }
 
 // Mock response tests

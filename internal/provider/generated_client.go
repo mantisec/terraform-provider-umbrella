@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-
 	"strings"
 	"time"
 )
@@ -120,7 +120,7 @@ type responseBody struct {
 
 func (rb *responseBody) Read(p []byte) (n int, err error) {
 	if rb.offset >= len(rb.data) {
-		return 0, fmt.Errorf("EOF")
+		return 0, io.EOF
 	}
 
 	n = copy(p, rb.data[rb.offset:])

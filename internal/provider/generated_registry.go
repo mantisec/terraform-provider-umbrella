@@ -44,10 +44,12 @@ func (r *GeneratedResourceRegistry) GetDataSources() []func() datasource.DataSou
 func RegisterGeneratedResources(registry *GeneratedResourceRegistry) {
 	// Register generated resources
 	registry.RegisterResource(NewGeneratedDestinationListResource)
+	registry.RegisterResource(NewNetworksResource)
+	registry.RegisterResource(NewSitesResource)
+	registry.RegisterResource(NewInternalnetworksResource)
+	registry.RegisterResource(NewUsersResource)
 
 	// Additional generated resources will be registered here by the code generator
-	// registry.RegisterResource(NewGeneratedNetworkResource)
-	// registry.RegisterResource(NewGeneratedSiteResource)
 
 	// Register generated data sources
 	// registry.RegisterDataSource(NewGeneratedDestinationListDataSource)
