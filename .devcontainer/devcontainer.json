@@ -1,7 +1,7 @@
 {
 	"name": "Terraform Provider Umbrella",
 	"image": "mcr.microsoft.com/devcontainers/go:1.21-bullseye",
-	
+
 	// Features to add to the dev container
 	"features": {
 		"ghcr.io/devcontainers/features/terraform:1": {
@@ -69,7 +69,8 @@
 				"eamodio.gitlens",
 				"streetsidesoftware.code-spell-checker",
 				"ms-vscode.test-adapter-converter",
-				"hbenl.vscode-test-explorer"
+				"hbenl.vscode-test-explorer",
+				"rooveterinaryinc.roo-code"
 			]
 		}
 	},
@@ -86,7 +87,13 @@
 	// Mount the local filesystem
 	"mounts": [
 		"source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached",
-		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+		// Share VS Code extension settings from Windows host
+		"source=${localEnv:USERPROFILE}/.vscode/extensions,target=/home/vscode/.vscode-server/extensions,type=bind,consistency=cached",
+		// Share Roo extension configuration
+		"source=${localEnv:APPDATA}/Code/User/globalStorage,target=/home/vscode/.vscode-server/data/User/globalStorage,type=bind,consistency=cached",
+		// Share VS Code user settings
+		"source=${localEnv:APPDATA}/Code/User/settings.json,target=/home/vscode/.vscode-server/data/User/settings.json,type=bind,consistency=cached"
 	],
 
 	// Environment variables
@@ -100,7 +107,6 @@
 	},
 
 	// Lifecycle scripts
-	"initializeCommand": ".devcontainer/pre-build.sh",
 	"onCreateCommand": ".devcontainer/on-create.sh",
 	"updateContentCommand": ".devcontainer/update-content.sh",
 
