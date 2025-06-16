@@ -31,13 +31,13 @@ This report provides a comprehensive analysis of Cisco's Umbrella API documentat
 
 ### 1. **Authentication API** ✅ IMPLEMENTED
 - **Base URL**: `https://api.umbrella.com/auth/v2`
-- **Swagger Spec**: ✅ Downloaded (`auth_api.yaml`)
+- **Swagger Spec**: ✅ Downloaded (`api-specs/auth_api.yaml`)
 - **Endpoints**:
   - `POST /token` - Create authorization token
 
 ### 2. **Investigate API** 🆕 NEW OPPORTUNITY
 - **Base URL**: `https://api.umbrella.com/investigate/v2`
-- **Swagger Spec**: ✅ Downloaded (`investigate_api.yaml`)
+- **Swagger Spec**: ✅ Downloaded (`api-specs/investigate_api.yaml`)
 - **Size**: 137KB+ comprehensive specification
 - **Categories**:
 
@@ -205,8 +205,8 @@ resource "umbrella_site" "example" {
 
 | API | Specification | Size | Status |
 |-----|---------------|------|--------|
-| Authentication | `auth_api.yaml` | 2.9KB | ✅ Downloaded |
-| Investigate | `investigate_api.yaml` | 137KB | ✅ Downloaded |
+| Authentication | `api-specs/auth_api.yaml` | 2.9KB | ✅ Downloaded |
+| Investigate | `api-specs/investigate_api.yaml` | 137KB | ✅ Downloaded |
 | Policies | Not found | - | 🔍 Need to locate |
 | Deployments | Not found | - | 🔍 Need to locate |
 | Admin | Not found | - | 🔍 Need to locate |

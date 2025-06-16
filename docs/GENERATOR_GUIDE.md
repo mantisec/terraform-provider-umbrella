@@ -131,7 +131,7 @@ Options:
 
 3. **Generate specific specs**:
    ```bash
-   ./bin/generator -specs policies_destination_lists_api.yaml
+   ./bin/generator -specs api-specs/policies_destination_lists_api.yaml
    ```
 
 ### Generated Files

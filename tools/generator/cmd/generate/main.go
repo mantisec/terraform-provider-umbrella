@@ -14,7 +14,7 @@ import (
 func main() {
 	var (
 		configPath = flag.String("config", "tools/generator/config/generation.yaml", "Path to generation configuration file")
-		specsDir   = flag.String("specs", ".", "Directory containing OpenAPI specification files")
+		specsDir   = flag.String("specs", "api-specs", "Directory containing OpenAPI specification files")
 		outputDir  = flag.String("output", "internal/provider", "Output directory for generated files")
 		verbose    = flag.Bool("verbose", false, "Enable verbose logging")
 	)

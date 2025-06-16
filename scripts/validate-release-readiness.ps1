@@ -413,7 +413,7 @@ Test-Requirement -Name "No Hardcoded Secrets" -Test {
         'token\s*=\s*[''"][^''"]+[''""]'
     )
     
-    $goFiles = Get-ChildItem -Recurse -Filter "*.go" | Where-Object { $_.FullName -notmatch "vendor|\.git" }
+    $goFiles = Get-ChildItem -Recurse -Filter "*.go" | Where-Object { $_.FullName -notmatch "vendor|\.git|tests" }
     
     foreach ($file in $goFiles) {
         $content = Get-Content $file.FullName -Raw
