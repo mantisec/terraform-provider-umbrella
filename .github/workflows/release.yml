@@ -1,24 +1,22 @@
+# Terraform Provider Release Workflow
+# This workflow builds and publishes releases when tags are pushed
+
 name: Release
 
 on:
   push:
     tags:
       - 'v*'
-  # Allow manual triggering of releases
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (e.g., v0.0.2)'
+        description: 'Release version (e.g., v1.0.0)'
         required: true
         type: string
-      draft:
-        description: 'Create as draft release'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   goreleaser:
@@ -27,51 +25,60 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Allow goreleaser to access older tag information.
+          # Allow goreleaser to access the full git history
           fetch-depth: 0
-      
+
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
           cache: true
-      
-      - name: Check GPG secrets
-        run: |
-          if [ -z "${{ secrets.GPG_PRIVATE_KEY }}" ]; then
-            echo "⚠️ GPG_PRIVATE_KEY secret is not set"
-            echo "Releases will be created without GPG signing"
-          else
-            echo "✅ GPG_PRIVATE_KEY secret is configured"
-          fi
-      
+
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
         id: import_gpg
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
-        continue-on-error: true
-      
+
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          version: latest
-          args: release --clean ${{ github.event.inputs.draft == 'true' && '--draft' || '' }}
+          version: '~> v2'
+          args: release --clean
         env:
-          # GitHub token, automatically provided to the action
-          # (no need to define this secret in the repo settings)
+          # GitHub token for creating releases
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GPG fingerprint for signing
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
-      
-      - name: Release Summary
+
+      - name: Upload terraform-registry-manifest.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-registry-manifest
+          path: terraform-registry-manifest.json
+
+  terraform-registry-docs:
+    runs-on: ubuntu-latest
+    needs: goreleaser
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Generate docs
         run: |
-          echo "🎉 Release workflow completed!"
-          echo "📦 Release created for: ${{ github.ref_name || github.event.inputs.version }}"
-          echo "🔗 Check releases at: ${{ github.server_url }}/${{ github.repository }}/releases"
-          if [ "${{ steps.import_gpg.outcome }}" = "failure" ]; then
-            echo "⚠️ GPG signing failed - release created without signatures"
-          else
-            echo "✅ Release includes GPG signatures"
-          fi
+          go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
+          tfplugindocs generate --provider-name umbrella
+
+      - name: Upload docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-docs
+          path: docs/
