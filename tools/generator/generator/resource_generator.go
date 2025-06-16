@@ -217,9 +217,7 @@ func (rg *ResourceGenerator) registerResourceTemplate() error {
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
+
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"

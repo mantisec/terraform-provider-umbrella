@@ -162,9 +162,7 @@ func (dsg *DataSourceGenerator) registerDataSourceTemplate() error {
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"net/http"
+
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
