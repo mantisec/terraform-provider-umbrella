@@ -10,9 +10,8 @@ import (
 
 const providerConfig = `
 provider "umbrella" {
-  api_key    = "test-key"
-  api_secret = "test-secret"
-  org_id     = "12345"
+  # Use environment variables for testing
+  # Set UMBRELLA_API_KEY, UMBRELLA_API_SECRET, UMBRELLA_ORG_ID
 }
 `
 

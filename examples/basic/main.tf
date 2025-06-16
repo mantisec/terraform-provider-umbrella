@@ -5,7 +5,8 @@ terraform {
   required_providers {
     umbrella = {
       source = "mantisec/umbrella"
-      version = "~> 0.2"
+      # Version constraint removed for development/testing
+      # version = ">= 0.1.0"
     }
   }
 }
@@ -35,46 +36,11 @@ variable "umbrella_org_id" {
   type        = string
 }
 
-# Variables for tunnel configuration
-variable "tunnel_site_origin_id" {
-  description = "Site origin ID to associate with the tunnel"
-  type        = number
-}
-
-variable "tunnel_device_ip" {
-  description = "Primary device IP address for the tunnel"
-  type        = string
-  default     = "203.0.113.10"
-}
-
-variable "tunnel_device_ip_secondary" {
-  description = "Secondary device IP address for the tunnel"
-  type        = string
-  default     = "203.0.113.11"
-}
-
-variable "tunnel_pre_shared_key" {
-  description = "Pre-shared key for primary IPSec tunnel"
-  type        = string
-  sensitive   = true
-}
-
-variable "tunnel_pre_shared_key_secondary" {
-  description = "Pre-shared key for secondary IPSec tunnel"
-  type        = string
-  sensitive   = true
-}
-
-variable "tunnel_local_networks" {
-  description = "List of local network CIDR blocks that will use the tunnels"
-  type        = list(string)
-  default     = ["10.0.0.0/8", "192.168.0.0/16"]
-}
 
 # Create a destination list for blocked domains
-resource "umbrella_destination_list" "blocked_domains" {
+resource "umbrella_destinationlists" "blocked_domains" {
   name = "Blocked Domains List"
-  type = "DOMAIN"
+  access = "block"
   destinations = [
     "malicious-site.com",
     "phishing-domain.net",
@@ -83,9 +49,9 @@ resource "umbrella_destination_list" "blocked_domains" {
 }
 
 # Create a destination list for allowed URLs
-resource "umbrella_destination_list" "allowed_urls" {
+resource "umbrella_destinationlists" "allowed_urls" {
   name = "Allowed URLs List"
-  type = "URL"
+  access = "allow"
   destinations = [
     "https://trusted-site.com/api",
     "https://corporate-portal.example.com",
@@ -93,35 +59,19 @@ resource "umbrella_destination_list" "allowed_urls" {
   ]
 }
 
-# Create a destination list for IP ranges
-resource "umbrella_destination_list" "internal_networks" {
-  name = "Internal Network Ranges"
-  type = "CIDR"
-  destinations = [
-    "10.0.0.0/8",
-    "172.16.0.0/12",
-    "192.168.0.0/16"
-  ]
+# Create a network
+resource "umbrella_networks" "corporate_network" {
+  name          = "Corporate Network"
+  ip_address    = "10.0.0.0"
+  prefix_length = 16
+  is_dynamic    = false
+  status        = "OPEN"
 }
 
-# Create primary IPSec tunnel to Umbrella SIG
-resource "umbrella_tunnel" "primary_tunnel" {
-  name            = "Primary-SIG-Tunnel"
-  site_origin_id  = var.tunnel_site_origin_id
-  device_ip       = var.tunnel_device_ip
-  pre_shared_key  = var.tunnel_pre_shared_key
-  local_networks  = var.tunnel_local_networks
-  tunnel_type     = "IPSEC"
-}
-
-# Create secondary IPSec tunnel for redundancy
-resource "umbrella_tunnel" "secondary_tunnel" {
-  name            = "Secondary-SIG-Tunnel"
-  site_origin_id  = var.tunnel_site_origin_id
-  device_ip       = var.tunnel_device_ip_secondary
-  pre_shared_key  = var.tunnel_pre_shared_key_secondary
-  local_networks  = var.tunnel_local_networks
-  tunnel_type     = "IPSEC"
+# Create a site
+resource "umbrella_sites" "main_office" {
+  name       = "Main Office"
+  is_default = true
 }
 
 # Outputs for monitoring and reference
@@ -129,50 +79,35 @@ output "destination_lists" {
   description = "Created destination lists"
   value = {
     blocked_domains = {
-      id   = umbrella_destination_list.blocked_domains.id
-      name = umbrella_destination_list.blocked_domains.name
-      type = umbrella_destination_list.blocked_domains.type
+      id     = umbrella_destinationlists.blocked_domains.id
+      name   = umbrella_destinationlists.blocked_domains.name
+      access = umbrella_destinationlists.blocked_domains.access
     }
     allowed_urls = {
-      id   = umbrella_destination_list.allowed_urls.id
-      name = umbrella_destination_list.allowed_urls.name
-      type = umbrella_destination_list.allowed_urls.type
-    }
-    internal_networks = {
-      id   = umbrella_destination_list.internal_networks.id
-      name = umbrella_destination_list.internal_networks.name
-      type = umbrella_destination_list.internal_networks.type
+      id     = umbrella_destinationlists.allowed_urls.id
+      name   = umbrella_destinationlists.allowed_urls.name
+      access = umbrella_destinationlists.allowed_urls.access
     }
   }
 }
 
-output "tunnels" {
-  description = "Created IPSec tunnels"
+output "network" {
+  description = "Created network"
   value = {
-    primary = {
-      id              = umbrella_tunnel.primary_tunnel.id
-      name            = umbrella_tunnel.primary_tunnel.name
-      site_origin_id  = umbrella_tunnel.primary_tunnel.site_origin_id
-      device_ip       = umbrella_tunnel.primary_tunnel.device_ip
-      local_networks  = umbrella_tunnel.primary_tunnel.local_networks
-      tunnel_type     = umbrella_tunnel.primary_tunnel.tunnel_type
-      status          = umbrella_tunnel.primary_tunnel.status
-      tunnel_endpoint = umbrella_tunnel.primary_tunnel.tunnel_endpoint
-      created_at      = umbrella_tunnel.primary_tunnel.created_at
-      updated_at      = umbrella_tunnel.primary_tunnel.updated_at
-    }
-    secondary = {
-      id              = umbrella_tunnel.secondary_tunnel.id
-      name            = umbrella_tunnel.secondary_tunnel.name
-      site_origin_id  = umbrella_tunnel.secondary_tunnel.site_origin_id
-      device_ip       = umbrella_tunnel.secondary_tunnel.device_ip
-      local_networks  = umbrella_tunnel.secondary_tunnel.local_networks
-      tunnel_type     = umbrella_tunnel.secondary_tunnel.tunnel_type
-      status          = umbrella_tunnel.secondary_tunnel.status
-      tunnel_endpoint = umbrella_tunnel.secondary_tunnel.tunnel_endpoint
-      created_at      = umbrella_tunnel.secondary_tunnel.created_at
-      updated_at      = umbrella_tunnel.secondary_tunnel.updated_at
-    }
+    id            = umbrella_networks.corporate_network.id
+    name          = umbrella_networks.corporate_network.name
+    ip_address    = umbrella_networks.corporate_network.ip_address
+    prefix_length = umbrella_networks.corporate_network.prefix_length
+    status        = umbrella_networks.corporate_network.status
+  }
+}
+
+output "site" {
+  description = "Created site"
+  value = {
+    id         = umbrella_sites.main_office.id
+    name       = umbrella_sites.main_office.name
+    is_default = umbrella_sites.main_office.is_default
   }
 }
 
@@ -180,9 +115,3 @@ output "tunnels" {
 # umbrella_api_key = "your-api-key-here"
 # umbrella_api_secret = "your-api-secret-here"
 # umbrella_org_id = "your-org-id-here"
-# tunnel_site_origin_id = 12345
-# tunnel_device_ip = "203.0.113.10"
-# tunnel_device_ip_secondary = "203.0.113.11"
-# tunnel_pre_shared_key = "your-secure-primary-psk-here"
-# tunnel_pre_shared_key_secondary = "your-secure-secondary-psk-here"
-# tunnel_local_networks = ["10.0.0.0/8", "192.168.0.0/16"]

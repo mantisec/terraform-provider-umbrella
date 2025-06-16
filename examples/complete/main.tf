@@ -5,8 +5,9 @@ terraform {
   required_version = ">= 1.0"
   required_providers {
     umbrella = {
-      source  = "mantisec/umbrella"
-      version = "~> 1.0"
+      source = "mantisec/umbrella"
+      # Version constraint removed for development/testing
+      # version = ">= 1.0.0"
     }
   }
 }
@@ -216,7 +217,7 @@ resource "umbrella_internalnetworks" "office_networks" {
 }
 
 # Create destination lists for security policies
-resource "umbrella_destination_list" "security_lists" {
+resource "umbrella_destinationlists" "security_lists" {
   for_each = local.security_lists
 
   name         = title(replace(each.key, "_", " "))
@@ -236,32 +237,6 @@ resource "umbrella_users" "company_users" {
   timezone  = each.value.timezone
 }
 
-# Create IPSec tunnels for secure connectivity (example configuration)
-resource "umbrella_tunnel" "site_tunnels" {
-  for_each = {
-    "hq_primary" = {
-      name            = "HQ Primary Tunnel"
-      site_origin_id  = umbrella_sites.offices["headquarters"].origin_id
-      device_ip       = "203.0.113.10"
-      pre_shared_key  = "primary-tunnel-psk-change-me"
-      local_networks  = ["192.168.1.0/24", "192.168.2.0/24"]
-    }
-    "hq_secondary" = {
-      name            = "HQ Secondary Tunnel"
-      site_origin_id  = umbrella_sites.offices["headquarters"].origin_id
-      device_ip       = "203.0.113.11"
-      pre_shared_key  = "secondary-tunnel-psk-change-me"
-      local_networks  = ["192.168.1.0/24", "192.168.2.0/24"]
-    }
-  }
-
-  name            = each.value.name
-  site_origin_id  = each.value.site_origin_id
-  device_ip       = each.value.device_ip
-  pre_shared_key  = each.value.pre_shared_key
-  local_networks  = each.value.local_networks
-  tunnel_type     = "IPSEC"
-}
 
 # Outputs for reference and monitoring
 output "deployment_summary" {
@@ -289,7 +264,7 @@ output "deployment_summary" {
     internal_networks_created = length(umbrella_internalnetworks.office_networks)
     
     destination_lists_created = {
-      for k, v in umbrella_destination_list.security_lists : k => {
+      for k, v in umbrella_destinationlists.security_lists : k => {
         id               = v.id
         name             = v.name
         access           = v.access
@@ -307,14 +282,6 @@ output "deployment_summary" {
       }
     }
     
-    tunnels_created = {
-      for k, v in umbrella_tunnel.site_tunnels : k => {
-        id              = v.id
-        name            = v.name
-        status          = v.status
-        tunnel_endpoint = v.tunnel_endpoint
-      }
-    }
   }
 }
 
@@ -322,12 +289,12 @@ output "security_configuration" {
   description = "Security-related configuration summary"
   value = {
     blocked_destinations = flatten([
-      for k, v in umbrella_destination_list.security_lists : v.destinations
+      for k, v in umbrella_destinationlists.security_lists : v.destinations
       if v.access == "block"
     ])
     
     allowed_destinations = flatten([
-      for k, v in umbrella_destination_list.security_lists : v.destinations
+      for k, v in umbrella_destinationlists.security_lists : v.destinations
       if v.access == "allow"
     ])
     
@@ -359,16 +326,6 @@ output "network_topology" {
         ]
       }
     }
-    
-    tunnels = {
-      for k, v in umbrella_tunnel.site_tunnels : k => {
-        name            = v.name
-        device_ip       = v.device_ip
-        tunnel_endpoint = v.tunnel_endpoint
-        local_networks  = v.local_networks
-        status          = v.status
-      }
-    }
   }
 }
 
@@ -377,15 +334,15 @@ data "umbrella_sites" "all_sites" {
   depends_on = [umbrella_sites.offices]
 }
 
-data "umbrella_destination_list" "all_lists" {
-  depends_on = [umbrella_destination_list.security_lists]
+data "umbrella_destinationlists" "all_lists" {
+  depends_on = [umbrella_destinationlists.security_lists]
 }
 
 output "validation_info" {
   description = "Validation information from data sources"
   value = {
     total_sites_in_org = length(data.umbrella_sites.all_sites.sites)
-    total_destination_lists_in_org = length(data.umbrella_destination_list.all_lists.destination_lists)
+    total_destination_lists_in_org = length(data.umbrella_destinationlists.all_lists.destination_lists)
     
     created_sites = [
       for site in data.umbrella_sites.all_sites.sites : site.name
