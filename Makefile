@@ -67,7 +67,7 @@ generate:
 # Generate with full Phase 2 features (client methods, docs, tests)
 .PHONY: generate-full
 generate-full:
-	@echo "Generating Phase 2 provider code with advanced features..."
+	@echo "Generating Mantisec Umbrella provider code with advanced features..."
 	go run tools/generator/cmd/generate/main.go
 	@echo "Formatting generated code..."
 	go fmt ./internal/provider/generated_*.go
