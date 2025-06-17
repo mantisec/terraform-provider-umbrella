@@ -11,6 +11,47 @@ import (
 )
 
 // -----------------------------------------------------------------------------
+// Generated resource initialization
+// -----------------------------------------------------------------------------
+
+// InitializeGeneratedResources loads and registers all generated resources
+// This function is called during provider initialization to discover and register
+// all generated resources and data sources from the generated files
+func InitializeGeneratedResources() {
+	registry := GetGeneratedRegistry()
+
+	// Skip if already initialized to avoid duplicate registrations
+	if registry.IsInitialized() {
+		return
+	}
+
+	// Generated resource files will automatically register themselves through their init() functions
+	// when they are imported. The registration happens via the RegisterGeneratedResource() and
+	// RegisterGeneratedDataSource() functions in generated_registration.go
+
+	// Mark as initialized
+	registry.SetInitialized()
+
+	// Note: At this point, all generated resources should be registered.
+	// The actual registration happens when generated files are imported and their init() functions run.
+}
+
+// GetGeneratedResourceCount returns the number of registered generated resources
+func GetGeneratedResourceCount() int {
+	return GetGeneratedRegistry().GetResourceCount()
+}
+
+// GetGeneratedDataSourceCount returns the number of registered generated data sources
+func GetGeneratedDataSourceCount() int {
+	return GetGeneratedRegistry().GetDataSourceCount()
+}
+
+// ResetGeneratedRegistry clears all registered generated resources (primarily for testing)
+func ResetGeneratedRegistry() {
+	GetGeneratedRegistry().Reset()
+}
+
+// -----------------------------------------------------------------------------
 // Provider definition
 // -----------------------------------------------------------------------------
 

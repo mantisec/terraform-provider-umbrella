@@ -222,11 +222,16 @@ func (rg *ResourceGenerator) registerResourceTemplate() error {
 import (
 	"context"
 
-
+	"github.com/mantisec/terraform-provider-umbrella/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+// init registers this resource with the generated resource registry
+func init() {
+	provider.RegisterGeneratedResource(New{{.StructName}})
+}
 
 // {{.StructName}} implements the {{.ResourceName}} resource
 type {{.StructName}} struct {
