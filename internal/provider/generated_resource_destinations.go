@@ -22,7 +22,17 @@ type DestinationsResource struct {
 
 // destinationsModel represents the resource data model
 type destinationsModel struct {
-	Id types.String `tfsdk:"id"`
+	Id                   types.String `tfsdk:"id"`
+	Access               types.String `tfsdk:"access"`
+	IsGlobal             types.Bool   `tfsdk:"is_global"`
+	Name                 types.String `tfsdk:"name"`
+	BundleTypeId         types.Int64  `tfsdk:"bundle_type_id"`
+	OrganizationId       types.Int64  `tfsdk:"organization_id"`
+	ThirdpartyCategoryId types.Int64  `tfsdk:"thirdparty_category_id"`
+	CreatedAt            types.Int64  `tfsdk:"created_at"`
+	ModifiedAt           types.Int64  `tfsdk:"modified_at"`
+	IsMspDefault         types.Bool   `tfsdk:"is_msp_default"`
+	MarkedForDeletion    types.Bool   `tfsdk:"marked_for_deletion"`
 }
 
 // NewDestinationsResource creates a new destinations resource
@@ -55,7 +65,17 @@ func (r *DestinationsResource) Schema(_ context.Context, _ resource.SchemaReques
 	resp.Schema = schema.Schema{
 		Description: "destinations resource",
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{Computed: true, Description: "Resource identifier"},
+			"id":                     schema.StringAttribute{Computed: true, Description: "Resource identifier"},
+			"access":                 schema.StringAttribute{Computed: true, Description: "The type of access for the destination list (allow/block)"},
+			"is_global":              schema.BoolAttribute{Computed: true, Description: "Specifies whether the destination list is a global destination list"},
+			"name":                   schema.StringAttribute{Computed: true, Description: "The name of the destination list"},
+			"bundle_type_id":         schema.Int64Attribute{Computed: true, Description: "The type of the destination list in the policy"},
+			"organization_id":        schema.Int64Attribute{Computed: true, Description: "The organization ID"},
+			"thirdparty_category_id": schema.Int64Attribute{Computed: true, Description: "The third-party category ID of the destination list"},
+			"created_at":             schema.Int64Attribute{Computed: true, Description: "The date and time when the destination list was created"},
+			"modified_at":            schema.Int64Attribute{Computed: true, Description: "The date and time when the destination list was modified"},
+			"is_msp_default":         schema.BoolAttribute{Computed: true, Description: "Specifies whether MSP is the default"},
+			"marked_for_deletion":    schema.BoolAttribute{Computed: true, Description: "Specifies whether the destination list is marked for deletion"},
 		},
 	}
 }

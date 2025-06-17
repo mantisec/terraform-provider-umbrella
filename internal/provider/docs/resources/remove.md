@@ -1,14 +1,24 @@
 ---
 page_title: "umbrella_remove Resource - remove"
 description: |-
-  Remove the Secure Web Gateway (SWG) override setting for the devices in the organization.
-Once you remove the override setting on a device, Umbrella applies your organization's SWG setting to the device.
+  Remove destinations from the destination list.
+
+**Note:** Accepts a list that contains no more than 500 destination IDs.
+
+You can retrieve a list of the destinations in the destination list through the GET `/destinationlists/{destinationListId}/destinations` operation.
+Then, to remove destinations in a destination list, provide a list of destination IDs in the request body of the
+DELETE `/destinationlists/{destinationListId}/destinations/remove` operation.
 ---
 
 # umbrella_remove (Resource)
 
-Remove the Secure Web Gateway (SWG) override setting for the devices in the organization.
-Once you remove the override setting on a device, Umbrella applies your organization's SWG setting to the device.
+Remove destinations from the destination list.
+
+**Note:** Accepts a list that contains no more than 500 destination IDs.
+
+You can retrieve a list of the destinations in the destination list through the GET `/destinationlists/{destinationListId}/destinations` operation.
+Then, to remove destinations in a destination list, provide a list of destination IDs in the request body of the
+DELETE `/destinationlists/{destinationListId}/destinations/remove` operation.
 
 ## Example Usage
 
@@ -39,7 +49,6 @@ resource "umbrella_remove" "example" {
 ### Read-Only
 
 - `id` (String) The unique identifier for this resource
-- `status` (String) Deleted SWG override setting on the devices.
 
 
 
