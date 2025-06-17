@@ -222,7 +222,6 @@ func (rg *ResourceGenerator) registerResourceTemplate() error {
 import (
 	"context"
 
-	"github.com/mantisec/terraform-provider-umbrella/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -230,7 +229,7 @@ import (
 
 // init registers this resource with the generated resource registry
 func init() {
-	provider.RegisterGeneratedResource(New{{.StructName}})
+	RegisterGeneratedResource(New{{.StructName}})
 }
 
 // {{.StructName}} implements the {{.ResourceName}} resource
@@ -288,7 +287,6 @@ func (r *{{.StructName}}) Schema(_ context.Context, _ resource.SchemaRequest, re
 	}
 }
 
-{{- if .CreateEndpoint}}
 // Create creates a new {{.ResourceName}}
 func (r *{{.StructName}}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan {{.ResourceName}}Model
@@ -297,11 +295,14 @@ func (r *{{.StructName}}) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	{{- if .CreateEndpoint}}
 	// TODO: Implement create logic using {{.CreateEndpoint.Method}} {{.CreateEndpoint.Path}}
+	{{- else}}
+	// TODO: Implement create logic - no specific create endpoint found
+	{{- end}}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
-{{- end}}
 
 {{- if .ReadEndpoint}}
 // Read reads the {{.ResourceName}}
@@ -318,7 +319,6 @@ func (r *{{.StructName}}) Read(ctx context.Context, req resource.ReadRequest, re
 }
 {{- end}}
 
-{{- if .UpdateEndpoint}}
 // Update updates the {{.ResourceName}}
 func (r *{{.StructName}}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan {{.ResourceName}}Model
@@ -327,11 +327,31 @@ func (r *{{.StructName}}) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
+	{{- if .UpdateEndpoint}}
 	// TODO: Implement update logic using {{.UpdateEndpoint.Method}} {{.UpdateEndpoint.Path}}
+	{{- else}}
+	// TODO: Implement update logic - no specific update endpoint found
+	{{- end}}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
-{{- end}}
+
+// Read reads the {{.ResourceName}}
+func (r *{{.StructName}}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state {{.ResourceName}}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	{{- if .ReadEndpoint}}
+	// TODO: Implement read logic using {{.ReadEndpoint.Method}} {{.ReadEndpoint.Path}}
+	{{- else}}
+	// TODO: Implement read logic - no specific read endpoint found
+	{{- end}}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
 
 {{- if .DeleteEndpoint}}
 // Delete deletes the {{.ResourceName}}
@@ -343,6 +363,17 @@ func (r *{{.StructName}}) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 
 	// TODO: Implement delete logic using {{.DeleteEndpoint.Method}} {{.DeleteEndpoint.Path}}
+}
+{{- else}}
+// Delete deletes the {{.ResourceName}}
+func (r *{{.StructName}}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state {{.ResourceName}}Model
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// TODO: Implement delete logic - no specific delete endpoint found
 }
 {{- end}}
 `

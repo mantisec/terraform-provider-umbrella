@@ -167,7 +167,6 @@ func (dsg *DataSourceGenerator) registerDataSourceTemplate() error {
 import (
 	"context"
 
-	"github.com/mantisec/terraform-provider-umbrella/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -175,7 +174,7 @@ import (
 
 // init registers this data source with the generated resource registry
 func init() {
-	provider.RegisterGeneratedDataSource(New{{.StructName}})
+	RegisterGeneratedDataSource(New{{.StructName}})
 }
 
 // {{.StructName}} implements the {{.ResourceName}} data source

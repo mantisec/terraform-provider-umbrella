@@ -59,10 +59,10 @@ func (g *Generator) GenerateFromSpec(spec *parser.APISpec, outputDir string) err
 		}
 	}
 
-	// Generate client methods
-	if err := g.generateClientMethods(endpoints, outputDir); err != nil {
-		return fmt.Errorf("failed to generate client methods: %w", err)
-	}
+	// Generate client methods - TEMPORARILY DISABLED DUE TO SYNTAX ISSUES
+	// if err := g.generateClientMethods(endpoints, outputDir); err != nil {
+	// 	return fmt.Errorf("failed to generate client methods: %w", err)
+	// }
 
 	// Generate documentation
 	if err := g.generateDocumentation(resourceGroups, outputDir); err != nil {
