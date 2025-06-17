@@ -16,8 +16,8 @@ type TopThreatTypesDataSource struct {
 // top_threat_typesDataModel represents the data source data model
 type top_threat_typesDataModel struct {
 	Id   types.String `tfsdk:"id"`
-	Data types.Set    `tfsdk:"data"`
 	Meta types.String `tfsdk:"meta"`
+	Data types.Set    `tfsdk:"data"`
 }
 
 // NewTopThreatTypesDataSource creates a new top_threat_types data source
@@ -51,8 +51,8 @@ func (d *TopThreatTypesDataSource) Schema(_ context.Context, _ datasource.Schema
 		Description: "top_threat_types data source",
 		Attributes: map[string]schema.Attribute{
 			"id":   schema.StringAttribute{Computed: true, Description: "Data source identifier"},
-			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
 			"meta": schema.StringAttribute{Computed: true},
+			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
 		},
 	}
 }
@@ -65,7 +65,7 @@ func (d *TopThreatTypesDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	// TODO: Implement read logic using GET /top-threat-types/{type}
+	// TODO: Implement read logic using GET /top-threat-types
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

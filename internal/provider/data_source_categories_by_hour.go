@@ -16,8 +16,8 @@ type CategoriesByHourDataSource struct {
 // categories_by_hourDataModel represents the data source data model
 type categories_by_hourDataModel struct {
 	Id   types.String `tfsdk:"id"`
-	Meta types.String `tfsdk:"meta"`
 	Data types.Set    `tfsdk:"data"`
+	Meta types.String `tfsdk:"meta"`
 }
 
 // NewCategoriesByHourDataSource creates a new categories_by_hour data source
@@ -51,8 +51,8 @@ func (d *CategoriesByHourDataSource) Schema(_ context.Context, _ datasource.Sche
 		Description: "categories_by_hour data source",
 		Attributes: map[string]schema.Attribute{
 			"id":   schema.StringAttribute{Computed: true, Description: "Data source identifier"},
-			"meta": schema.StringAttribute{Computed: true},
 			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
+			"meta": schema.StringAttribute{Computed: true},
 		},
 	}
 }
@@ -65,7 +65,7 @@ func (d *CategoriesByHourDataSource) Read(ctx context.Context, req datasource.Re
 		return
 	}
 
-	// TODO: Implement read logic using GET /categories-by-hour
+	// TODO: Implement read logic using GET /categories-by-hour/{type}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

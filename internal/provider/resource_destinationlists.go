@@ -61,22 +61,9 @@ func (r *DestinationlistsResource) Create(ctx context.Context, req resource.Crea
 		return
 	}
 
-	// TODO: Implement create logic using PATCH /destinationlists/{destinationListId}
+	// TODO: Implement create logic using POST /destinationlists
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-// Read reads the destinationlists resource
-func (r *DestinationlistsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state destinationlistsModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// TODO: Implement read logic using GET /destinationlists/{destinationListId}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Update updates the destinationlists
@@ -100,5 +87,5 @@ func (r *DestinationlistsResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	// TODO: Implement delete logic using PATCH /destinationlists/{destinationListId}
+	// TODO: Implement delete logic using DELETE /destinationlists/{destinationListId}
 }

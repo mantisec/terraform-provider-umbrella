@@ -15,7 +15,9 @@ type IpDataSource struct {
 
 // ipDataModel represents the data source data model
 type ipDataModel struct {
-	Id types.String `tfsdk:"id"`
+	Id   types.String `tfsdk:"id"`
+	Data types.Set    `tfsdk:"data"`
+	Meta types.String `tfsdk:"meta"`
 }
 
 // NewIpDataSource creates a new ip data source
@@ -48,7 +50,9 @@ func (d *IpDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 	resp.Schema = schema.Schema{
 		Description: "ip data source",
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{Computed: true, Description: "Data source identifier"},
+			"id":   schema.StringAttribute{Computed: true, Description: "Data source identifier"},
+			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
+			"meta": schema.StringAttribute{Computed: true},
 		},
 	}
 }
@@ -61,7 +65,7 @@ func (d *IpDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 		return
 	}
 
-	// TODO: Implement read logic using GET /pdns/ip/{ip}
+	// TODO: Implement read logic using GET /activity/ip
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

@@ -65,7 +65,7 @@ func (d *SummariesByDestinationDataSource) Read(ctx context.Context, req datasou
 		return
 	}
 
-	// TODO: Implement read logic using GET /summaries-by-destination/{type}
+	// TODO: Implement read logic using GET /summaries-by-destination
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

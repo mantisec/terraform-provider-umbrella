@@ -65,7 +65,7 @@ func (d *CategoriesByTimerangeDataSource) Read(ctx context.Context, req datasour
 		return
 	}
 
-	// TODO: Implement read logic using GET /categories-by-timerange/{type}
+	// TODO: Implement read logic using GET /categories-by-timerange
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

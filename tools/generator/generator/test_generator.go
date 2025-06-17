@@ -26,6 +26,7 @@ func NewTestGenerator(cfg *config.Config, templateEngine *TemplateEngine) *TestG
 
 // TestData contains data for test template generation
 type TestData struct {
+	Name           string // Add this field for template compatibility
 	ResourceName   string
 	ResourceType   string // "resource" or "data_source"
 	TypeName       string
@@ -94,6 +95,7 @@ func (tg *TestGenerator) GenerateTests(resourceName string, endpoints []parser.E
 // prepareTestData prepares the data structure for test generation
 func (tg *TestGenerator) prepareTestData(resourceName string, endpoints []parser.Endpoint, resourceType string) *TestData {
 	data := &TestData{
+		Name:           resourceName, // Set the Name field
 		ResourceName:   resourceName,
 		ResourceType:   resourceType,
 		TypeName:       tg.config.Global.ProviderName + "_" + resourceName,
@@ -446,7 +448,7 @@ func Test{{pascalCase .ResourceName}}{{if eq .ResourceType "resource"}}Resource{
 	{{else}}
 	r := New{{.StructName}}()
 	{{end}}
-	
+
 	// Test that the resource implements the correct interface
 	{{if eq .ResourceType "resource"}}
 	var _ resource.Resource = r
@@ -561,12 +563,12 @@ func {{.Name}}(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAcc{{pascalCase $.ResourceName}}Config_{{$.Name}}_valid({{.}}),
+				Config: testAcc{{pascalCase $.ResourceName}}Config_{{.Name}}_valid({{.}}),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					{{if eq $.ResourceType "resource"}}
-					resource.TestCheckResourceAttr("{{$.TypeName}}.test", "{{$.Name}}", {{.}}),
+					resource.TestCheckResourceAttr("{{$.TypeName}}.test", "{{.Name}}", {{.}}),
 					{{else}}
-					resource.TestCheckDataSourceAttr("{{$.TypeName}}.test", "{{$.Name}}", {{.}}),
+					resource.TestCheckDataSourceAttr("{{$.TypeName}}.test", "{{.Name}}", {{.}}),
 					{{end}}
 				),
 			},
@@ -583,7 +585,7 @@ func {{.Name}}(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAcc{{pascalCase $.ResourceName}}Config_{{$.Name}}_invalid({{.}}),
+				Config:      testAcc{{pascalCase $.ResourceName}}Config_{{.Name}}_invalid({{.}}),
 				ExpectError: regexp.MustCompile(".*"),
 			},
 		},

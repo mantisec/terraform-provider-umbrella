@@ -16,11 +16,11 @@ type NameserversDataSource struct {
 // nameserversDataModel represents the data source data model
 type nameserversDataModel struct {
 	Id                types.String `tfsdk:"id"`
+	Totalresults      types.Int64  `tfsdk:"totalResults"`
+	Moredataavailable types.String `tfsdk:"moreDataAvailable"`
 	Limit             types.String `tfsdk:"limit"`
 	Sortfield         types.String `tfsdk:"sortField"`
 	Domains           types.Set    `tfsdk:"domains"`
-	Totalresults      types.String `tfsdk:"totalResults"`
-	Moredataavailable types.String `tfsdk:"moreDataAvailable"`
 }
 
 // NewNameserversDataSource creates a new nameservers data source
@@ -54,11 +54,11 @@ func (d *NameserversDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 		Description: "nameservers data source",
 		Attributes: map[string]schema.Attribute{
 			"id":                schema.StringAttribute{Computed: true, Description: "Data source identifier"},
+			"totalResults":      schema.Int64Attribute{Computed: true, Description: "The total number of WHOIS records found for this query."},
+			"moreDataAvailable": schema.StringAttribute{Computed: true},
 			"limit":             schema.StringAttribute{Computed: true},
 			"sortField":         schema.StringAttribute{Computed: true, Description: "The field that is used to sort the collection."},
-			"domains":           schema.SetAttribute{Computed: true, Description: "The list of WHOIS nameserver domain information.", ElementType: types.StringType},
-			"totalResults":      schema.StringAttribute{Computed: true},
-			"moreDataAvailable": schema.StringAttribute{Computed: true},
+			"domains":           schema.SetAttribute{Computed: true, Description: "The list of information about the WHOIS emails and nameservers.", ElementType: types.StringType},
 		},
 	}
 }
@@ -71,7 +71,7 @@ func (d *NameserversDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	// TODO: Implement read logic using GET /whois/nameservers
+	// TODO: Implement read logic using GET /whois/nameservers/{nameserver}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

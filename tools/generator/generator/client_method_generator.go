@@ -326,7 +326,7 @@ func (cmg *ClientMethodGenerator) generateErrorHandling(responses map[string]par
 // registerClientMethodTemplate registers the enhanced client method template
 func (cmg *ClientMethodGenerator) registerClientMethodTemplate() error {
 	template := `// {{.MethodName}} {{.Description}}
-func (c *GeneratedClient) {{.MethodName}}(ctx context.Context{{if .Parameters}}, {{range .Parameters}}{{.Name}} {{.GoType}}{{if not .IsLast}}, {{end}}{{end}}{{end}}) ({{.ReturnType}}, error) {
+func (c *GeneratedClient) {{.MethodName}}(ctx context.Context{{if .Parameters}}{{range .Parameters}}, {{.Name}} {{.GoType}}{{end}}{{end}}) ({{.ReturnType}}, error) {
 	{{- if .PathParameters}}
 	path := fmt.Sprintf("{{.Path}}", {{range .PathParameters}}{{.Name}}{{if not .IsLast}}, {{end}}{{end}})
 	{{- else}}
@@ -345,7 +345,7 @@ func (c *GeneratedClient) {{.MethodName}}(ctx context.Context{{if .Parameters}},
 	}
 	{{- end}}
 	{{- end}}
-	
+
 	if len(queryParams) > 0 {
 		var params []string
 		for k, v := range queryParams {

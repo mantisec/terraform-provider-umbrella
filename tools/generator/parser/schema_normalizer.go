@@ -7,22 +7,36 @@ import (
 
 // SchemaNormalizer handles normalization and reference resolution for OpenAPI schemas
 type SchemaNormalizer struct {
-	resolvedRefs map[string]*Schema
+	resolvedRefs       map[string]*Schema
+	resolvedParameters map[string]*Parameter
+	spec               *APISpec
 }
 
 // NewSchemaNormalizer creates a new schema normalizer
 func NewSchemaNormalizer() *SchemaNormalizer {
 	return &SchemaNormalizer{
-		resolvedRefs: make(map[string]*Schema),
+		resolvedRefs:       make(map[string]*Schema),
+		resolvedParameters: make(map[string]*Parameter),
 	}
 }
 
 // NormalizeSpec normalizes the entire OpenAPI specification
 func (n *SchemaNormalizer) NormalizeSpec(spec *APISpec) error {
-	// First pass: collect all component schemas
+	// Store reference to spec for parameter resolution
+	n.spec = spec
+
+	// First pass: collect all component schemas and parameters
 	if spec.Components.Schemas != nil {
 		for name, schema := range spec.Components.Schemas {
 			n.resolvedRefs["#/components/schemas/"+name] = schema
+		}
+	}
+
+	if spec.Components.Parameters != nil {
+		for name, param := range spec.Components.Parameters {
+			// Create a copy to avoid pointer issues
+			paramCopy := param
+			n.resolvedParameters["#/components/parameters/"+name] = &paramCopy
 		}
 	}
 
@@ -62,6 +76,11 @@ func (n *SchemaNormalizer) normalizePathItem(pathItem *PathItem) error {
 
 // normalizeOperation normalizes an operation
 func (n *SchemaNormalizer) normalizeOperation(op *Operation) error {
+	// Resolve parameter references first
+	if err := n.resolveParameterReferences(op); err != nil {
+		return err
+	}
+
 	// Normalize parameters
 	for _, param := range op.Parameters {
 		if param.Schema != nil {
@@ -144,6 +163,30 @@ func (n *SchemaNormalizer) resolveSchemaReferences(schema *Schema) error {
 		}
 	}
 
+	return nil
+}
+
+// resolveParameterReferences resolves $ref references in operation parameters
+func (n *SchemaNormalizer) resolveParameterReferences(op *Operation) error {
+	var resolvedParams []Parameter
+
+	for _, param := range op.Parameters {
+		// Check if this is a parameter reference
+		if param.Ref != "" {
+			// Resolve the parameter reference
+			resolved, exists := n.resolvedParameters[param.Ref]
+			if !exists {
+				return fmt.Errorf("unresolved parameter reference: %s", param.Ref)
+			}
+			// Use the resolved parameter
+			resolvedParams = append(resolvedParams, *resolved)
+		} else {
+			// This is an inline parameter, use as-is
+			resolvedParams = append(resolvedParams, param)
+		}
+	}
+
+	op.Parameters = resolvedParams
 	return nil
 }
 

@@ -61,22 +61,9 @@ func (r *InternaldomainsResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	// TODO: Implement create logic using DELETE /internaldomains/{internalDomainId}
+	// TODO: Implement create logic using POST /internaldomains
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-// Read reads the internaldomains resource
-func (r *InternaldomainsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state internaldomainsModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// TODO: Implement read logic using GET /internaldomains/{internalDomainId}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Update updates the internaldomains
@@ -87,7 +74,7 @@ func (r *InternaldomainsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	// TODO: Implement update logic using DELETE /internaldomains/{internalDomainId}
+	// TODO: Implement update logic using PUT /internaldomains/{internalDomainId}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }

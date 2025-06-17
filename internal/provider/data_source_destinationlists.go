@@ -61,7 +61,7 @@ func (d *DestinationlistsDataSource) Read(ctx context.Context, req datasource.Re
 		return
 	}
 
-	// TODO: Implement read logic using GET /destinationlists
+	// TODO: Implement read logic using GET /destinationlists/{destinationListId}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

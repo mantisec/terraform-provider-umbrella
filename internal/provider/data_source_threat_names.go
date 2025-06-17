@@ -16,7 +16,7 @@ type ThreatNamesDataSource struct {
 // threat_namesDataModel represents the data source data model
 type threat_namesDataModel struct {
 	Id   types.String `tfsdk:"id"`
-	Data types.String `tfsdk:"data"`
+	Data types.Set    `tfsdk:"data"`
 	Meta types.String `tfsdk:"meta"`
 }
 
@@ -51,7 +51,7 @@ func (d *ThreatNamesDataSource) Schema(_ context.Context, _ datasource.SchemaReq
 		Description: "threat_names data source",
 		Attributes: map[string]schema.Attribute{
 			"id":   schema.StringAttribute{Computed: true, Description: "Data source identifier"},
-			"data": schema.StringAttribute{Computed: true},
+			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
 			"meta": schema.StringAttribute{Computed: true},
 		},
 	}
@@ -65,7 +65,7 @@ func (d *ThreatNamesDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	// TODO: Implement read logic using GET /threat-names/{threatnameid}
+	// TODO: Implement read logic using GET /threat-names
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

@@ -16,8 +16,8 @@ type TopIpsDataSource struct {
 // top_ipsDataModel represents the data source data model
 type top_ipsDataModel struct {
 	Id   types.String `tfsdk:"id"`
-	Data types.Set    `tfsdk:"data"`
 	Meta types.String `tfsdk:"meta"`
+	Data types.Set    `tfsdk:"data"`
 }
 
 // NewTopIpsDataSource creates a new top_ips data source
@@ -51,8 +51,8 @@ func (d *TopIpsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 		Description: "top_ips data source",
 		Attributes: map[string]schema.Attribute{
 			"id":   schema.StringAttribute{Computed: true, Description: "Data source identifier"},
-			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
 			"meta": schema.StringAttribute{Computed: true},
+			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
 		},
 	}
 }

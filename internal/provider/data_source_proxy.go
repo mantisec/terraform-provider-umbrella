@@ -16,8 +16,8 @@ type ProxyDataSource struct {
 // proxyDataModel represents the data source data model
 type proxyDataModel struct {
 	Id   types.String `tfsdk:"id"`
-	Data types.Set    `tfsdk:"data"`
 	Meta types.String `tfsdk:"meta"`
+	Data types.Set    `tfsdk:"data"`
 }
 
 // NewProxyDataSource creates a new proxy data source
@@ -51,8 +51,8 @@ func (d *ProxyDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, 
 		Description: "proxy data source",
 		Attributes: map[string]schema.Attribute{
 			"id":   schema.StringAttribute{Computed: true, Description: "Data source identifier"},
-			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
 			"meta": schema.StringAttribute{Computed: true},
+			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
 		},
 	}
 }

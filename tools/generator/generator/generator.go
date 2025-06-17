@@ -147,7 +147,8 @@ func (g *Generator) generateClientMethods(endpoints []parser.Endpoint, outputDir
 
 import (
 	"context"
-
+	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 )

@@ -61,7 +61,7 @@ func (d *SitesDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	// TODO: Implement read logic using GET /sites
+	// TODO: Implement read logic using GET /sites/{siteId}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

@@ -58,6 +58,7 @@ type Parameter struct {
 	Description string  `json:"description"`
 	Required    bool    `json:"required"`
 	Schema      *Schema `json:"schema"`
+	Ref         string  `json:"$ref"`
 }
 
 // RequestBody represents a request body

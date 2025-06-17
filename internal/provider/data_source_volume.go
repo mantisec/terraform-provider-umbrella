@@ -16,8 +16,8 @@ type VolumeDataSource struct {
 // volumeDataModel represents the data source data model
 type volumeDataModel struct {
 	Id      types.String `tfsdk:"id"`
-	Dates   types.Set    `tfsdk:"dates"`
 	Queries types.Set    `tfsdk:"queries"`
+	Dates   types.Set    `tfsdk:"dates"`
 }
 
 // NewVolumeDataSource creates a new volume data source
@@ -51,8 +51,8 @@ func (d *VolumeDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 		Description: "volume data source",
 		Attributes: map[string]schema.Attribute{
 			"id":      schema.StringAttribute{Computed: true, Description: "Data source identifier"},
-			"dates":   schema.SetAttribute{Computed: true, Description: "The list of dates recorded for the domain.", ElementType: types.StringType},
 			"queries": schema.SetAttribute{Computed: true, Description: "The list of the numbers of DNS queries requested for the domain in one hour, listed in ascending order.", ElementType: types.StringType},
+			"dates":   schema.SetAttribute{Computed: true, Description: "The list of dates recorded for the domain.", ElementType: types.StringType},
 		},
 	}
 }

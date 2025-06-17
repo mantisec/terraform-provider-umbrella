@@ -16,11 +16,11 @@ type AsForIpDataSource struct {
 // as_for_ipDataModel represents the data source data model
 type as_for_ipDataModel struct {
 	Id           types.String `tfsdk:"id"`
+	CreationDate types.String `tfsdk:"creation_date"`
+	Ir           types.Int64  `tfsdk:"ir"`
 	Description  types.String `tfsdk:"description"`
 	Asn          types.String `tfsdk:"asn"`
 	Cidr         types.String `tfsdk:"cidr"`
-	CreationDate types.String `tfsdk:"creation_date"`
-	Ir           types.Int64  `tfsdk:"ir"`
 }
 
 // NewAsForIpDataSource creates a new as_for_ip.json data source
@@ -54,11 +54,11 @@ func (d *AsForIpDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 		Description: "as_for_ip.json data source",
 		Attributes: map[string]schema.Attribute{
 			"id":            schema.StringAttribute{Computed: true, Description: "Data source identifier"},
+			"creation_date": schema.StringAttribute{Computed: true, Description: "The date when the AS was first created."},
+			"ir":            schema.Int64Attribute{Computed: true, Description: "The IR number corresponds to one of the 5 Regional Internet Registries (RIR).  Registry  Number  Region    Registry  1  AfriNIC: Africa   Registry  2  APNIC: Asia, Australia, New Zealand, and neighboring countries.   Registry  3  ARIN: United States, Canada, several parts of the Caribbean region, and Antarctica.   Registry  4  LACNIC: Latin America and parts of the Caribbean region.   Registry  5  RIPE NCC: Europe, Russia, the Middle East, and Central Asia.   Registry  0  Unknown / Not Available"},
 			"description":   schema.StringAttribute{Computed: true, Description: "Network Owner Description as provided by the network owner."},
 			"asn":           schema.StringAttribute{Computed: true, Description: "The autonomous system number (ASN) associated with the IP address."},
 			"cidr":          schema.StringAttribute{Computed: true, Description: "The IP CIDR for the ASN."},
-			"creation_date": schema.StringAttribute{Computed: true, Description: "The date when the AS was first created."},
-			"ir":            schema.Int64Attribute{Computed: true, Description: "The IR number corresponds to one of the 5 Regional Internet Registries (RIR).  Registry  Number  Region    Registry  1  AfriNIC: Africa   Registry  2  APNIC: Asia, Australia, New Zealand, and neighboring countries.   Registry  3  ARIN: United States, Canada, several parts of the Caribbean region, and Antarctica.   Registry  4  LACNIC: Latin America and parts of the Caribbean region.   Registry  5  RIPE NCC: Europe, Russia, the Middle East, and Central Asia.   Registry  0  Unknown / Not Available"},
 		},
 	}
 }

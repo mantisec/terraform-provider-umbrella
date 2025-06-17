@@ -16,7 +16,7 @@ type IdentitiesDataSource struct {
 // identitiesDataModel represents the data source data model
 type identitiesDataModel struct {
 	Id   types.String `tfsdk:"id"`
-	Data types.String `tfsdk:"data"`
+	Data types.Set    `tfsdk:"data"`
 	Meta types.String `tfsdk:"meta"`
 }
 
@@ -51,7 +51,7 @@ func (d *IdentitiesDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 		Description: "identities data source",
 		Attributes: map[string]schema.Attribute{
 			"id":   schema.StringAttribute{Computed: true, Description: "Data source identifier"},
-			"data": schema.StringAttribute{Computed: true},
+			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
 			"meta": schema.StringAttribute{Computed: true},
 		},
 	}
@@ -65,7 +65,7 @@ func (d *IdentitiesDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	// TODO: Implement read logic using GET /identities/{identityid}
+	// TODO: Implement read logic using GET /identities
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

@@ -16,12 +16,12 @@ type EmailsDataSource struct {
 // emailsDataModel represents the data source data model
 type emailsDataModel struct {
 	Id                types.String `tfsdk:"id"`
-	Sortfield         types.String `tfsdk:"sortField"`
-	Domains           types.Set    `tfsdk:"domains"`
 	Totalresults      types.Int64  `tfsdk:"totalResults"`
 	Offset            types.String `tfsdk:"offset"`
 	Moredataavailable types.Bool   `tfsdk:"moreDataAvailable"`
 	Limit             types.Int64  `tfsdk:"limit"`
+	Sortfield         types.String `tfsdk:"sortField"`
+	Domains           types.Set    `tfsdk:"domains"`
 }
 
 // NewEmailsDataSource creates a new emails data source
@@ -55,12 +55,12 @@ func (d *EmailsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 		Description: "emails data source",
 		Attributes: map[string]schema.Attribute{
 			"id":                schema.StringAttribute{Computed: true, Description: "Data source identifier"},
-			"sortField":         schema.StringAttribute{Computed: true, Description: "The field that is used to sort the collection."},
-			"domains":           schema.SetAttribute{Computed: true, Description: "The list of domains registered by this email and if the domain is currently registered by this email address.", ElementType: types.StringType},
 			"totalResults":      schema.Int64Attribute{Computed: true, Description: "The total number of results for this email address."},
 			"offset":            schema.StringAttribute{Computed: true},
 			"moreDataAvailable": schema.BoolAttribute{Computed: true, Description: "Specifies whether there is more than 500 results for this email."},
 			"limit":             schema.Int64Attribute{Computed: true, Description: "The number of results returned in the response. The default limit is 500."},
+			"sortField":         schema.StringAttribute{Computed: true, Description: "The field that is used to sort the collection."},
+			"domains":           schema.SetAttribute{Computed: true, Description: "The list of domains registered by this email and if the domain is currently registered by this email address.", ElementType: types.StringType},
 		},
 	}
 }

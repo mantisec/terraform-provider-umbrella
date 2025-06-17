@@ -65,7 +65,7 @@ func (d *CategoriesDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	// TODO: Implement read logic using GET /categories
+	// TODO: Implement read logic using GET /providers/categories
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

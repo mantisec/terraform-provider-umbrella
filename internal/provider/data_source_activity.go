@@ -2,9 +2,6 @@ package provider
 
 import (
 	"context"
-	// "encoding/json"
-	// "fmt"
-	// "net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -19,8 +16,8 @@ type ActivityDataSource struct {
 // activityDataModel represents the data source data model
 type activityDataModel struct {
 	Id   types.String `tfsdk:"id"`
-	Meta types.String `tfsdk:"meta"`
 	Data types.Set    `tfsdk:"data"`
+	Meta types.String `tfsdk:"meta"`
 }
 
 // NewActivityDataSource creates a new activity data source
@@ -54,8 +51,8 @@ func (d *ActivityDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 		Description: "activity data source",
 		Attributes: map[string]schema.Attribute{
 			"id":   schema.StringAttribute{Computed: true, Description: "Data source identifier"},
-			"meta": schema.StringAttribute{Computed: true},
 			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
+			"meta": schema.StringAttribute{Computed: true},
 		},
 	}
 }
