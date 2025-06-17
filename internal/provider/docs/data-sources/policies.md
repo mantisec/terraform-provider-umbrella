@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_policies Data Source - policies"
 description: |-
-  List the policies that include the network tunnel.
+  List the policies for a network.
 ---
 
 # umbrella_policies (Data Source)
 
-List the policies that include the network tunnel.
+List the policies for a network.
 
 ## Example Usage
 

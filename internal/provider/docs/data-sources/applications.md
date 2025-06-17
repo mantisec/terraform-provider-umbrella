@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_applications Data Source - applications"
 description: |-
-  Get an application by ID.
+  List all discovered applications.
 ---
 
 # umbrella_applications (Data Source)
 
-Get an application by ID.
+List all discovered applications.
 
 ## Example Usage
 

@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_virtualappliances Data Source - virtualappliances"
 description: |-
-  List the virtual appliances in the organization.
+  Get a virtual appliance in the organization.
 ---
 
 # umbrella_virtualappliances (Data Source)
 
-List the virtual appliances in the organization.
+Get a virtual appliance in the organization.
 
 ## Example Usage
 

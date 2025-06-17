@@ -4,6 +4,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -22,7 +23,18 @@ type RoamingcomputersResource struct {
 
 // roamingcomputersModel represents the resource data model
 type roamingcomputersModel struct {
-	Id types.String `tfsdk:"id"`
+	Id             types.String `tfsdk:"id"`
+	Name           types.String `tfsdk:"name"`
+	Description    types.String `tfsdk:"description"`
+	Enabled        types.Bool   `tfsdk:"enabled"`
+	Active         types.Bool   `tfsdk:"active"`
+	Status         types.String `tfsdk:"status"`
+	OrganizationId types.Int64  `tfsdk:"organization_id"`
+	CreatedAt      types.Int64  `tfsdk:"created_at"`
+	ModifiedAt     types.Int64  `tfsdk:"modified_at"`
+	UpdatedAt      types.Int64  `tfsdk:"updated_at"`
+	CreatedBy      types.String `tfsdk:"created_by"`
+	ModifiedBy     types.String `tfsdk:"modified_by"`
 }
 
 // NewRoamingcomputersResource creates a new roamingcomputers resource
@@ -55,7 +67,18 @@ func (r *RoamingcomputersResource) Schema(_ context.Context, _ resource.SchemaRe
 	resp.Schema = schema.Schema{
 		Description: "roamingcomputers resource",
 		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{Computed: true, Description: "Resource identifier"},
+			"id":              schema.StringAttribute{Computed: true, Description: "Resource identifier"},
+			"name":            schema.StringAttribute{Computed: true, Description: "The name of the resource"},
+			"description":     schema.StringAttribute{Computed: true, Description: "The description of the resource"},
+			"enabled":         schema.BoolAttribute{Computed: true, Description: "Whether the resource is enabled"},
+			"active":          schema.BoolAttribute{Computed: true, Description: "Whether the resource is active"},
+			"status":          schema.StringAttribute{Computed: true, Description: "The status of the resource"},
+			"organization_id": schema.Int64Attribute{Computed: true, Description: "The organization ID"},
+			"created_at":      schema.Int64Attribute{Computed: true, Description: "The date and time when the resource was created"},
+			"modified_at":     schema.Int64Attribute{Computed: true, Description: "The date and time when the resource was modified"},
+			"updated_at":      schema.Int64Attribute{Computed: true, Description: "The date and time when the resource was updated"},
+			"created_by":      schema.StringAttribute{Computed: true, Description: "The user who created the resource"},
+			"modified_by":     schema.StringAttribute{Computed: true, Description: "The user who modified the resource"},
 		},
 	}
 }
@@ -67,19 +90,9 @@ func (r *RoamingcomputersResource) Create(ctx context.Context, req resource.Crea
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement create logic - no specific create endpoint found
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-// Update updates the roamingcomputers
-func (r *RoamingcomputersResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan roamingcomputersModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	// TODO: Implement update logic using PUT /roamingcomputers/{deviceId}
+	// No specific create endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No create endpoint configured for roamingcomputers")
+	return
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
@@ -91,9 +104,99 @@ func (r *RoamingcomputersResource) Read(ctx context.Context, req resource.ReadRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement read logic - no specific read endpoint found
+	// No specific read endpoint found - return current state
+	// This is a no-op read that just returns the current state
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// Update updates the roamingcomputers
+func (r *RoamingcomputersResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan roamingcomputersModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// Create request body from plan
+	requestBody := make(map[string]interface{})
+
+	// Build path with ID
+	path := fmt.Sprintf("/roamingcomputers/{deviceId}", plan.Id.ValueString())
+
+	// Make API call
+	result, err := r.client.UpdateResource(ctx, path, requestBody)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update roamingcomputers, got error: %s", err))
+		return
+	}
+
+	// Update state with response data
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			if val, exists := dataMap["id"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Id = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["name"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Name = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["description"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Description = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["enabled"]; exists && val != nil {
+				if boolVal, ok := val.(bool); ok {
+					plan.Enabled = types.BoolValue(boolVal)
+				}
+			}
+			if val, exists := dataMap["active"]; exists && val != nil {
+				if boolVal, ok := val.(bool); ok {
+					plan.Active = types.BoolValue(boolVal)
+				}
+			}
+			if val, exists := dataMap["status"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Status = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["organization_id"]; exists && val != nil {
+				if floatVal, ok := val.(float64); ok {
+					plan.OrganizationId = types.Int64Value(int64(floatVal))
+				}
+			}
+			if val, exists := dataMap["created_at"]; exists && val != nil {
+				if floatVal, ok := val.(float64); ok {
+					plan.CreatedAt = types.Int64Value(int64(floatVal))
+				}
+			}
+			if val, exists := dataMap["modified_at"]; exists && val != nil {
+				if floatVal, ok := val.(float64); ok {
+					plan.ModifiedAt = types.Int64Value(int64(floatVal))
+				}
+			}
+			if val, exists := dataMap["updated_at"]; exists && val != nil {
+				if floatVal, ok := val.(float64); ok {
+					plan.UpdatedAt = types.Int64Value(int64(floatVal))
+				}
+			}
+			if val, exists := dataMap["created_by"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.CreatedBy = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["modified_by"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.ModifiedBy = types.StringValue(strVal)
+				}
+			}
+		}
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 // Delete deletes the roamingcomputers
@@ -104,5 +207,13 @@ func (r *RoamingcomputersResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	// TODO: Implement delete logic using DELETE /roamingcomputers/{deviceId}
+	// Build path with ID
+	path := fmt.Sprintf("/roamingcomputers/{deviceId}", state.Id.ValueString())
+
+	// Make API call
+	err := r.client.DeleteResource(ctx, path)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete roamingcomputers, got error: %s", err))
+		return
+	}
 }

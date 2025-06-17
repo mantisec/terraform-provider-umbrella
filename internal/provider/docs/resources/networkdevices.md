@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_networkdevices Resource - networkdevices"
 description: |-
-  Create a network device.
+  Remove a network device.
 ---
 
 # umbrella_networkdevices (Resource)
 
-Create a network device.
+Remove a network device.
 
 ## Example Usage
 

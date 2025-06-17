@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_cnames Data Source - cnames"
 description: |-
-  List the cname information for the service providers console.
+  Get the cname information for the service providers console.
 ---
 
 # umbrella_cnames (Data Source)
 
-List the cname information for the service providers console.
+Get the cname information for the service providers console.
 
 ## Example Usage
 

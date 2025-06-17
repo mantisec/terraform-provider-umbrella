@@ -68,7 +68,7 @@ func (d *PoliciesDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	// TODO: Implement read logic using GET /tunnels/{id}/policies
+	// TODO: Implement read logic using GET /networks/{networkId}/policies
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

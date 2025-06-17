@@ -209,8 +209,8 @@ func (rg *ResourceGenerator) extractSchemaFromOpenAPISchema(apiSchema *parser.Sc
 		// If we have no properties and no reference, this might be a resolved reference
 		// that resulted in an empty schema. Let's try to infer from the context.
 		if apiSchema.Type == "" && apiSchema.Ref == "" {
-			// Try to add default destination list attributes
-			rg.addDestinationListObjectAttributes(schema, processedFields, isInput)
+			// Try to add common attributes based on context
+			rg.addCommonSchemaAttributes("", schema, processedFields, isInput)
 		}
 	}
 
@@ -239,30 +239,19 @@ func (rg *ResourceGenerator) extractSchemaFromOpenAPISchema(apiSchema *parser.Sc
 	}
 }
 
-// handleSchemaReference handles unresolved schema references by creating attributes based on known patterns
+// handleSchemaReference handles unresolved schema references by creating attributes based on common patterns
 func (rg *ResourceGenerator) handleSchemaReference(ref string, schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
 	// Extract schema name from reference
 	schemaName := strings.TrimPrefix(ref, "#/components/schemas/")
 
-	// For destination lists, we know the expected schema structure from the OpenAPI spec
-	// This is a temporary solution until we fix the reference resolution
-	switch schemaName {
-	case "DestinationListResponse":
-		rg.addDestinationListResponseAttributes(schema, processedFields, isInput)
-	case "DestinationListObject":
-		rg.addDestinationListObjectAttributes(schema, processedFields, isInput)
-	case "DestinationListCreate":
-		rg.addDestinationListCreateAttributes(schema, processedFields, isInput)
-	case "DestinationListPatch":
-		rg.addDestinationListPatchAttributes(schema, processedFields, isInput)
-	case "PaginatedDestinationListsResponse":
-		rg.addPaginatedDestinationListsResponseAttributes(schema, processedFields, isInput)
-	}
+	// Try to infer common schema patterns dynamically
+	rg.addCommonSchemaAttributes(schemaName, schema, processedFields, isInput)
 }
 
-// addDestinationListObjectAttributes adds attributes for DestinationListObject schema
-func (rg *ResourceGenerator) addDestinationListObjectAttributes(schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
-	attributes := []struct {
+// addCommonSchemaAttributes adds attributes based on common schema patterns
+func (rg *ResourceGenerator) addCommonSchemaAttributes(schemaName string, schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
+	// Define common attributes that appear in most API resources
+	commonAttributes := []struct {
 		name        string
 		tfType      string
 		goType      string
@@ -270,19 +259,45 @@ func (rg *ResourceGenerator) addDestinationListObjectAttributes(schema *Resource
 		computed    bool
 		description string
 	}{
-		{"access", "types.String", "string", true, false, "The type of access for the destination list (allow/block)"},
-		{"is_global", "types.Bool", "bool", true, false, "Specifies whether the destination list is a global destination list"},
-		{"name", "types.String", "string", true, false, "The name of the destination list"},
-		{"bundle_type_id", "types.Int64", "int64", false, false, "The type of the destination list in the policy"},
+		{"name", "types.String", "string", true, false, "The name of the resource"},
+		{"description", "types.String", "string", false, false, "The description of the resource"},
+		{"enabled", "types.Bool", "bool", false, false, "Whether the resource is enabled"},
+		{"active", "types.Bool", "bool", false, false, "Whether the resource is active"},
+		{"status", "types.String", "string", false, true, "The status of the resource"},
 		{"organization_id", "types.Int64", "int64", false, true, "The organization ID"},
-		{"thirdparty_category_id", "types.Int64", "int64", false, true, "The third-party category ID of the destination list"},
-		{"created_at", "types.Int64", "int64", false, true, "The date and time when the destination list was created"},
-		{"modified_at", "types.Int64", "int64", false, true, "The date and time when the destination list was modified"},
-		{"is_msp_default", "types.Bool", "bool", false, true, "Specifies whether MSP is the default"},
-		{"marked_for_deletion", "types.Bool", "bool", false, true, "Specifies whether the destination list is marked for deletion"},
+		{"created_at", "types.Int64", "int64", false, true, "The date and time when the resource was created"},
+		{"modified_at", "types.Int64", "int64", false, true, "The date and time when the resource was modified"},
+		{"updated_at", "types.Int64", "int64", false, true, "The date and time when the resource was updated"},
+		{"created_by", "types.String", "string", false, true, "The user who created the resource"},
+		{"modified_by", "types.String", "string", false, true, "The user who modified the resource"},
 	}
 
-	for _, attr := range attributes {
+	// Add schema-specific attributes based on naming patterns
+	schemaLower := strings.ToLower(schemaName)
+
+	// For destination list schemas, add specific attributes
+	if strings.Contains(schemaLower, "destinationlist") {
+		rg.addDestinationListSpecificAttributes(schema, processedFields, isInput)
+		return
+	}
+
+	// For tunnel/VPN schemas
+	if strings.Contains(schemaLower, "tunnel") || strings.Contains(schemaLower, "vpn") || strings.Contains(schemaLower, "ipsec") {
+		rg.addTunnelSpecificAttributes(schema, processedFields, isInput)
+	}
+
+	// For rule/policy schemas
+	if strings.Contains(schemaLower, "rule") || strings.Contains(schemaLower, "policy") {
+		rg.addRuleSpecificAttributes(schema, processedFields, isInput)
+	}
+
+	// For SAML schemas
+	if strings.Contains(schemaLower, "saml") {
+		rg.addSAMLSpecificAttributes(schema, processedFields, isInput)
+	}
+
+	// Add common attributes that haven't been processed yet
+	for _, attr := range commonAttributes {
 		if !processedFields[attr.name] {
 			schemaAttr := &SchemaAttribute{
 				Name:        attr.name,
@@ -315,65 +330,128 @@ func (rg *ResourceGenerator) addDestinationListObjectAttributes(schema *Resource
 	}
 }
 
-// addDestinationListCreateAttributes adds attributes for DestinationListCreate schema
-func (rg *ResourceGenerator) addDestinationListCreateAttributes(schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
+// addDestinationListSpecificAttributes adds destination list specific attributes
+func (rg *ResourceGenerator) addDestinationListSpecificAttributes(schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
 	attributes := []struct {
 		name        string
 		tfType      string
 		goType      string
 		required    bool
+		computed    bool
 		description string
 	}{
-		{"access", "types.String", "string", true, "The type of access for the destination list (allow/block)"},
-		{"is_global", "types.Bool", "bool", true, "Specifies whether the destination list is a global destination list"},
-		{"name", "types.String", "string", true, "The name of the destination list"},
-		{"bundle_type_id", "types.Int64", "int64", false, "The type of the destination list in the policy"},
+		{"access", "types.String", "string", true, false, "The type of access for the destination list (allow/block)"},
+		{"is_global", "types.Bool", "bool", true, false, "Specifies whether the destination list is a global destination list"},
+		{"bundle_type_id", "types.Int64", "int64", false, false, "The type of the destination list in the policy"},
+		{"thirdparty_category_id", "types.Int64", "int64", false, true, "The third-party category ID of the destination list"},
+		{"is_msp_default", "types.Bool", "bool", false, true, "Specifies whether MSP is the default"},
+		{"marked_for_deletion", "types.Bool", "bool", false, true, "Specifies whether the destination list is marked for deletion"},
 	}
 
+	rg.addAttributesToSchema(attributes, schema, processedFields, isInput)
+}
+
+// addTunnelSpecificAttributes adds tunnel/VPN specific attributes
+func (rg *ResourceGenerator) addTunnelSpecificAttributes(schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
+	attributes := []struct {
+		name        string
+		tfType      string
+		goType      string
+		required    bool
+		computed    bool
+		description string
+	}{
+		{"tunnel_name", "types.String", "string", true, false, "The name of the tunnel"},
+		{"remote_gateway", "types.String", "string", true, false, "The remote gateway IP address"},
+		{"local_gateway", "types.String", "string", false, false, "The local gateway IP address"},
+		{"preshared_key", "types.String", "string", true, false, "The pre-shared key for authentication"},
+		{"encryption", "types.String", "string", false, false, "The encryption algorithm"},
+		{"authentication", "types.String", "string", false, false, "The authentication algorithm"},
+	}
+
+	rg.addAttributesToSchema(attributes, schema, processedFields, isInput)
+}
+
+// addRuleSpecificAttributes adds rule/policy specific attributes
+func (rg *ResourceGenerator) addRuleSpecificAttributes(schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
+	attributes := []struct {
+		name        string
+		tfType      string
+		goType      string
+		required    bool
+		computed    bool
+		description string
+	}{
+		{"action", "types.String", "string", true, false, "The action to take (allow/block)"},
+		{"priority", "types.Int64", "int64", false, false, "The priority of the rule"},
+		{"source", "types.String", "string", false, false, "The source of the rule"},
+		{"destination", "types.String", "string", false, false, "The destination of the rule"},
+		{"protocol", "types.String", "string", false, false, "The protocol for the rule"},
+		{"port", "types.String", "string", false, false, "The port for the rule"},
+	}
+
+	rg.addAttributesToSchema(attributes, schema, processedFields, isInput)
+}
+
+// addSAMLSpecificAttributes adds SAML specific attributes
+func (rg *ResourceGenerator) addSAMLSpecificAttributes(schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
+	attributes := []struct {
+		name        string
+		tfType      string
+		goType      string
+		required    bool
+		computed    bool
+		description string
+	}{
+		{"entity_id", "types.String", "string", true, false, "The SAML entity ID"},
+		{"sso_url", "types.String", "string", true, false, "The SSO URL"},
+		{"certificate", "types.String", "string", false, false, "The SAML certificate"},
+		{"attribute_mapping", "types.String", "string", false, false, "The attribute mapping configuration"},
+	}
+
+	rg.addAttributesToSchema(attributes, schema, processedFields, isInput)
+}
+
+// addAttributesToSchema is a helper method to add attributes to schema
+func (rg *ResourceGenerator) addAttributesToSchema(attributes []struct {
+	name        string
+	tfType      string
+	goType      string
+	required    bool
+	computed    bool
+	description string
+}, schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
 	for _, attr := range attributes {
 		if !processedFields[attr.name] {
 			schemaAttr := &SchemaAttribute{
 				Name:        attr.name,
 				Type:        attr.tfType,
 				GoType:      attr.goType,
-				Required:    attr.required && isInput,
-				Optional:    !attr.required && isInput,
-				Computed:    !isInput,
 				Description: attr.description,
 			}
+
+			// Proper field classification logic
+			if attr.computed {
+				// Always computed fields (timestamps, IDs, etc.)
+				schemaAttr.Computed = true
+				schemaAttr.Required = false
+				schemaAttr.Optional = false
+			} else if isInput {
+				// Input context: required or optional fields
+				schemaAttr.Required = attr.required
+				schemaAttr.Optional = !attr.required
+				schemaAttr.Computed = false
+			} else {
+				// Response context: all fields are computed
+				schemaAttr.Computed = true
+				schemaAttr.Required = false
+				schemaAttr.Optional = false
+			}
+
 			schema.Attributes = append(schema.Attributes, *schemaAttr)
 			processedFields[attr.name] = true
 		}
 	}
-}
-
-// addDestinationListResponseAttributes adds attributes for DestinationListResponse schema
-func (rg *ResourceGenerator) addDestinationListResponseAttributes(schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
-	// DestinationListResponse contains a data field with DestinationListObject
-	rg.addDestinationListObjectAttributes(schema, processedFields, isInput)
-}
-
-// addDestinationListPatchAttributes adds attributes for DestinationListPatch schema
-func (rg *ResourceGenerator) addDestinationListPatchAttributes(schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
-	if !processedFields["name"] {
-		schemaAttr := &SchemaAttribute{
-			Name:        "name",
-			Type:        "types.String",
-			GoType:      "string",
-			Required:    true && isInput,
-			Optional:    false,
-			Computed:    !isInput,
-			Description: "The name of the destination list",
-		}
-		schema.Attributes = append(schema.Attributes, *schemaAttr)
-		processedFields["name"] = true
-	}
-}
-
-// addPaginatedDestinationListsResponseAttributes adds attributes for PaginatedDestinationListsResponse schema
-func (rg *ResourceGenerator) addPaginatedDestinationListsResponseAttributes(schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
-	// This is typically used for data sources (list operations)
-	rg.addDestinationListObjectAttributes(schema, processedFields, isInput)
 }
 
 // createSchemaAttribute creates a schema attribute from an OpenAPI property
@@ -483,6 +561,7 @@ func (rg *ResourceGenerator) registerResourceTemplate() error {
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -551,91 +630,220 @@ func (r *{{.StructName}}) Schema(_ context.Context, _ resource.SchemaRequest, re
 
 // Create creates a new {{.ResourceName}}
 func (r *{{.StructName}}) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan {{.ResourceName}}Model
+	var plan {{snakeCase .ResourceName}}Model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	{{- if .CreateEndpoint}}
-	// TODO: Implement create logic using {{.CreateEndpoint.Method}} {{.CreateEndpoint.Path}}
+	// Create request body from plan
+	requestBody := make(map[string]interface{})
+	{{- range .Schema.Attributes}}
+	{{- if not .Computed}}
+	if !plan.{{pascalCase .Name}}.IsNull() {
+		{{- if eq .Type "types.String"}}
+		requestBody["{{.Name}}"] = plan.{{pascalCase .Name}}.ValueString()
+		{{- else if eq .Type "types.Bool"}}
+		requestBody["{{.Name}}"] = plan.{{pascalCase .Name}}.ValueBool()
+		{{- else if eq .Type "types.Int64"}}
+		requestBody["{{.Name}}"] = plan.{{pascalCase .Name}}.ValueInt64()
+		{{- else}}
+		requestBody["{{.Name}}"] = plan.{{pascalCase .Name}}.ValueString()
+		{{- end}}
+	}
+	{{- end}}
+	{{- end}}
+
+	// Make API call
+	result, err := r.client.CreateResource(ctx, "{{.CreateEndpoint.Path}}", requestBody)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create {{.ResourceName}}, got error: %s", err))
+		return
+	}
+
+	// Update state with response data
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			{{- range .Schema.Attributes}}
+			if val, exists := dataMap["{{.Name}}"]; exists && val != nil {
+				{{- if eq .Type "types.String"}}
+				if strVal, ok := val.(string); ok {
+					plan.{{pascalCase .Name}} = types.StringValue(strVal)
+				}
+				{{- else if eq .Type "types.Bool"}}
+				if boolVal, ok := val.(bool); ok {
+					plan.{{pascalCase .Name}} = types.BoolValue(boolVal)
+				}
+				{{- else if eq .Type "types.Int64"}}
+				if floatVal, ok := val.(float64); ok {
+					plan.{{pascalCase .Name}} = types.Int64Value(int64(floatVal))
+				}
+				{{- end}}
+			}
+			{{- end}}
+		}
+	}
 	{{- else}}
-	// TODO: Implement create logic - no specific create endpoint found
+	// No specific create endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No create endpoint configured for {{.ResourceName}}")
+	return
 	{{- end}}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
-{{- if .ReadEndpoint}}
 // Read reads the {{.ResourceName}}
 func (r *{{.StructName}}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state {{.ResourceName}}Model
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// TODO: Implement read logic using {{.ReadEndpoint.Method}} {{.ReadEndpoint.Path}}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-}
-{{- end}}
-
-// Update updates the {{.ResourceName}}
-func (r *{{.StructName}}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan {{.ResourceName}}Model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	{{- if .UpdateEndpoint}}
-	// TODO: Implement update logic using {{.UpdateEndpoint.Method}} {{.UpdateEndpoint.Path}}
-	{{- else}}
-	// TODO: Implement update logic - no specific update endpoint found
-	{{- end}}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-// Read reads the {{.ResourceName}}
-func (r *{{.StructName}}) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state {{.ResourceName}}Model
+	var state {{snakeCase .ResourceName}}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	{{- if .ReadEndpoint}}
-	// TODO: Implement read logic using {{.ReadEndpoint.Method}} {{.ReadEndpoint.Path}}
+	// Build path with ID
+	path := fmt.Sprintf("{{.ReadEndpoint.Path}}", state.Id.ValueString())
+
+	// Make API call
+	result, err := r.client.GetResource(ctx, path)
+	if err != nil {
+		if err.Error() == "resource not found" {
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read {{.ResourceName}}, got error: %s", err))
+		return
+	}
+
+	// Update state with response data
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			{{- range .Schema.Attributes}}
+			if val, exists := dataMap["{{.Name}}"]; exists && val != nil {
+				{{- if eq .Type "types.String"}}
+				if strVal, ok := val.(string); ok {
+					state.{{pascalCase .Name}} = types.StringValue(strVal)
+				}
+				{{- else if eq .Type "types.Bool"}}
+				if boolVal, ok := val.(bool); ok {
+					state.{{pascalCase .Name}} = types.BoolValue(boolVal)
+				}
+				{{- else if eq .Type "types.Int64"}}
+				if floatVal, ok := val.(float64); ok {
+					state.{{pascalCase .Name}} = types.Int64Value(int64(floatVal))
+				}
+				{{- end}}
+			}
+			{{- end}}
+		}
+	}
 	{{- else}}
-	// TODO: Implement read logic - no specific read endpoint found
+	// No specific read endpoint found - return current state
+	// This is a no-op read that just returns the current state
 	{{- end}}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
+// Update updates the {{.ResourceName}}
+func (r *{{.StructName}}) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan {{snakeCase .ResourceName}}Model
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	{{- if .UpdateEndpoint}}
+	// Create request body from plan
+	requestBody := make(map[string]interface{})
+	{{- range .Schema.Attributes}}
+	{{- if and (not .Computed) (ne .Name "id")}}
+	if !plan.{{pascalCase .Name}}.IsNull() {
+		{{- if eq .Type "types.String"}}
+		requestBody["{{.Name}}"] = plan.{{pascalCase .Name}}.ValueString()
+		{{- else if eq .Type "types.Bool"}}
+		requestBody["{{.Name}}"] = plan.{{pascalCase .Name}}.ValueBool()
+		{{- else if eq .Type "types.Int64"}}
+		requestBody["{{.Name}}"] = plan.{{pascalCase .Name}}.ValueInt64()
+		{{- else}}
+		requestBody["{{.Name}}"] = plan.{{pascalCase .Name}}.ValueString()
+		{{- end}}
+	}
+	{{- end}}
+	{{- end}}
+
+	// Build path with ID
+	path := fmt.Sprintf("{{.UpdateEndpoint.Path}}", plan.Id.ValueString())
+
+	// Make API call
+	result, err := r.client.UpdateResource(ctx, path, requestBody)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update {{.ResourceName}}, got error: %s", err))
+		return
+	}
+
+	// Update state with response data
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			{{- range .Schema.Attributes}}
+			if val, exists := dataMap["{{.Name}}"]; exists && val != nil {
+				{{- if eq .Type "types.String"}}
+				if strVal, ok := val.(string); ok {
+					plan.{{pascalCase .Name}} = types.StringValue(strVal)
+				}
+				{{- else if eq .Type "types.Bool"}}
+				if boolVal, ok := val.(bool); ok {
+					plan.{{pascalCase .Name}} = types.BoolValue(boolVal)
+				}
+				{{- else if eq .Type "types.Int64"}}
+				if floatVal, ok := val.(float64); ok {
+					plan.{{pascalCase .Name}} = types.Int64Value(int64(floatVal))
+				}
+				{{- end}}
+			}
+			{{- end}}
+		}
+	}
+	{{- else}}
+	// No specific update endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No update endpoint configured for {{.ResourceName}}")
+	return
+	{{- end}}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
 {{- if .DeleteEndpoint}}
 // Delete deletes the {{.ResourceName}}
 func (r *{{.StructName}}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state {{.ResourceName}}Model
+	var state {{snakeCase .ResourceName}}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// TODO: Implement delete logic using {{.DeleteEndpoint.Method}} {{.DeleteEndpoint.Path}}
+	// Build path with ID
+	path := fmt.Sprintf("{{.DeleteEndpoint.Path}}", state.Id.ValueString())
+
+	// Make API call
+	err := r.client.DeleteResource(ctx, path)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete {{.ResourceName}}, got error: %s", err))
+		return
+	}
 }
 {{- else}}
 // Delete deletes the {{.ResourceName}}
 func (r *{{.StructName}}) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state {{.ResourceName}}Model
+	var state {{snakeCase .ResourceName}}Model
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// TODO: Implement delete logic - no specific delete endpoint found
+	// No specific delete endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No delete endpoint configured for {{.ResourceName}}")
 }
 {{- end}}
 `

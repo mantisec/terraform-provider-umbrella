@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTrialextensionsResource_Schema(t *testing.T) {
+func TestDevicesResource_Schema(t *testing.T) {
 
-	r := NewTrialextensionsResource()
+	r := NewDevicesResource()
 
 	// Test that the resource implements the correct interface
 

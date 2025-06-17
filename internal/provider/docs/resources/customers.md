@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_customers Resource - customers"
 description: |-
-  Create a customer for a managed provider.
+  Create a customer for a provider.
 ---
 
 # umbrella_customers (Resource)
 
-Create a customer for a managed provider.
+Create a customer for a provider.
 
 ## Example Usage
 

@@ -68,7 +68,7 @@ func (d *VirtualappliancesDataSource) Read(ctx context.Context, req datasource.R
 		return
 	}
 
-	// TODO: Implement read logic using GET /virtualappliances
+	// TODO: Implement read logic using GET /virtualappliances/{virtualApplianceId}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOrginfoDataSource_Schema(t *testing.T) {
+func TestStateDataSource_Schema(t *testing.T) {
 
-	r := NewOrginfoResource()
+	r := NewStateResource()
 
 	// Test that the resource implements the correct interface
 

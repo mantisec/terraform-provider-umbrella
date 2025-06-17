@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_customers Data Source - customers"
 description: |-
-  List the customers for the managed provider.
+  List the customers for the provider.
 ---
 
 # umbrella_customers (Data Source)
 
-List the customers for the managed provider.
+List the customers for the provider.
 
 ## Example Usage
 

@@ -23,8 +23,8 @@ type EventsDataSource struct {
 // eventsDataModel represents the data source data model
 type eventsDataModel struct {
 	Id   types.String `tfsdk:"id"`
-	Data types.Set    `tfsdk:"data"`
 	Meta types.Object `tfsdk:"meta"`
+	Data types.Set    `tfsdk:"data"`
 }
 
 // NewEventsDataSource creates a new events data source
@@ -58,8 +58,8 @@ func (d *EventsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 		Description: "events data source",
 		Attributes: map[string]schema.Attribute{
 			"id":   schema.StringAttribute{Computed: true, Description: "Data source identifier"},
-			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
 			"meta": schema.StringAttribute{Computed: true, Description: "The tunnel error metadata."},
+			"data": schema.SetAttribute{Computed: true, ElementType: types.StringType},
 		},
 	}
 }

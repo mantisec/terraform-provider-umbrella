@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_cnames Resource - cnames"
 description: |-
-  Add the cname information for the service providers console.
+  Update the cname information for the service providers console.
 ---
 
 # umbrella_cnames (Resource)
 
-Add the cname information for the service providers console.
+Update the cname information for the service providers console.
 
 ## Example Usage
 

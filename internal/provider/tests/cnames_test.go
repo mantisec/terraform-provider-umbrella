@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestApplicationcategoriesDataSource_Schema(t *testing.T) {
+func TestCnamesResource_Schema(t *testing.T) {
 
-	r := NewApplicationcategoriesResource()
+	r := NewCnamesResource()
 
 	// Test that the resource implements the correct interface
 
-	var _ datasource.DataSource = r
+	var _ resource.Resource = r
 
 }

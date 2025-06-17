@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_networks Resource - networks"
 description: |-
-  Update a Network. Before you can update the network's IP address, contact Support to get your IP range verified.
+  Create a network. Before you can create a network, contact Support to get your IP range verified.
 ---
 
 # umbrella_networks (Resource)
 
-Update a Network. Before you can update the network's IP address, contact Support to get your IP range verified.
+Create a network. Before you can create a network, contact Support to get your IP range verified.
 
 ## Example Usage
 

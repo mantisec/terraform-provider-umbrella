@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_networkdevices Data Source - networkdevices"
 description: |-
-  List the network devices.
+  Get a network device.
 ---
 
 # umbrella_networkdevices (Data Source)
 
-List the network devices.
+Get a network device.
 
 ## Example Usage
 

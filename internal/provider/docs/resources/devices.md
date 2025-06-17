@@ -1,12 +1,16 @@
 ---
 page_title: "umbrella_devices Resource - devices"
 description: |-
-  For the tag ID, add the tag to the roaming computers.
+  For the tag ID, remove the tag on the roaming computers in the organization.
+After the delete, if the tag is not assigned to any roaming computers in the organization, Umbrella removes the tag from
+the organization. You can recreate the tag for your organization.
 ---
 
 # umbrella_devices (Resource)
 
-For the tag ID, add the tag to the roaming computers.
+For the tag ID, remove the tag on the roaming computers in the organization.
+After the delete, if the tag is not assigned to any roaming computers in the organization, Umbrella removes the tag from
+the organization. You can recreate the tag for your organization.
 
 ## Example Usage
 

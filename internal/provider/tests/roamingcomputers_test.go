@@ -7,12 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSummaryDataSource_Schema(t *testing.T) {
+func TestRoamingcomputersResource_Schema(t *testing.T) {
 
-	r := NewSummaryResource()
+	r := NewRoamingcomputersResource()
 
 	// Test that the resource implements the correct interface
 
-	var _ datasource.DataSource = r
+	var _ resource.Resource = r
 
 }

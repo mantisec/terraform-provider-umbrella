@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_networks Data Source - networks"
 description: |-
-  Get a Network.
+  List the Networks.
 ---
 
 # umbrella_networks (Data Source)
 
-Get a Network.
+List the Networks.
 
 ## Example Usage
 

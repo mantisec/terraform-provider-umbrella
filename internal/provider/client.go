@@ -93,7 +93,115 @@ func (c *apiClient) do(ctx context.Context, method, path string, body []byte) (*
 }
 
 // -----------------------------------------------------------------------------
-// Destination Lists API Methods
+// Generic API Methods
+// -----------------------------------------------------------------------------
+
+// GenericAPIResponse represents a generic API response structure
+type GenericAPIResponse struct {
+	Status struct {
+		Code int    `json:"code"`
+		Text string `json:"text"`
+	} `json:"status"`
+	Data interface{} `json:"data"`
+}
+
+// CreateResource creates a new resource using the specified path and request body
+func (c *apiClient) CreateResource(ctx context.Context, path string, requestBody interface{}) (*GenericAPIResponse, error) {
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := c.do(ctx, http.MethodPost, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+	}
+
+	var result GenericAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetResource retrieves a resource by ID using the specified path
+func (c *apiClient) GetResource(ctx context.Context, path string) (*GenericAPIResponse, error) {
+	resp, err := c.do(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("resource not found")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+	}
+
+	var result GenericAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// UpdateResource updates a resource using the specified path and request body
+func (c *apiClient) UpdateResource(ctx context.Context, path string, requestBody interface{}) (*GenericAPIResponse, error) {
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := c.do(ctx, http.MethodPatch, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("resource not found")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+	}
+
+	var result GenericAPIResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// DeleteResource deletes a resource using the specified path
+func (c *apiClient) DeleteResource(ctx context.Context, path string) error {
+	resp, err := c.do(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		// Resource already deleted, consider this success
+		return nil
+	}
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+	}
+
+	return nil
+}
+
+// -----------------------------------------------------------------------------
+// Destination Lists API Methods (Legacy - for backward compatibility)
 // -----------------------------------------------------------------------------
 
 // DestinationListCreateRequest represents a request to create a destination list
@@ -133,105 +241,74 @@ type DestinationListResponse struct {
 	Data DestinationListObject `json:"data"`
 }
 
-// CreateDestinationList creates a new destination list
+// CreateDestinationList creates a new destination list (legacy method)
 func (c *apiClient) CreateDestinationList(ctx context.Context, req DestinationListCreateRequest) (*DestinationListResponse, error) {
-	path := fmt.Sprintf("/policies/v2/destinationlists")
+	path := "/policies/v2/destinationlists"
 
-	body, err := json.Marshal(req)
+	genericResp, err := c.CreateResource(ctx, path, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
+		return nil, err
 	}
 
-	resp, err := c.do(ctx, http.MethodPost, path, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+	// Convert generic response to specific type
+	result := &DestinationListResponse{
+		Status: genericResp.Status,
 	}
 
-	var result DestinationListResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	// Convert data interface{} to DestinationListObject
+	if dataBytes, err := json.Marshal(genericResp.Data); err == nil {
+		json.Unmarshal(dataBytes, &result.Data)
 	}
 
-	return &result, nil
+	return result, nil
 }
 
-// GetDestinationList retrieves a destination list by ID
+// GetDestinationList retrieves a destination list by ID (legacy method)
 func (c *apiClient) GetDestinationList(ctx context.Context, id string) (*DestinationListResponse, error) {
 	path := fmt.Sprintf("/policies/v2/destinationlists/%s", id)
 
-	resp, err := c.do(ctx, http.MethodGet, path, nil)
+	genericResp, err := c.GetResource(ctx, path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("destination list not found")
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+		return nil, err
 	}
 
-	var result DestinationListResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	// Convert generic response to specific type
+	result := &DestinationListResponse{
+		Status: genericResp.Status,
 	}
 
-	return &result, nil
+	// Convert data interface{} to DestinationListObject
+	if dataBytes, err := json.Marshal(genericResp.Data); err == nil {
+		json.Unmarshal(dataBytes, &result.Data)
+	}
+
+	return result, nil
 }
 
-// UpdateDestinationList updates a destination list
+// UpdateDestinationList updates a destination list (legacy method)
 func (c *apiClient) UpdateDestinationList(ctx context.Context, id string, req DestinationListUpdateRequest) (*DestinationListResponse, error) {
 	path := fmt.Sprintf("/policies/v2/destinationlists/%s", id)
 
-	body, err := json.Marshal(req)
+	genericResp, err := c.UpdateResource(ctx, path, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
+		return nil, err
 	}
 
-	resp, err := c.do(ctx, http.MethodPatch, path, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("destination list not found")
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+	// Convert generic response to specific type
+	result := &DestinationListResponse{
+		Status: genericResp.Status,
 	}
 
-	var result DestinationListResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	// Convert data interface{} to DestinationListObject
+	if dataBytes, err := json.Marshal(genericResp.Data); err == nil {
+		json.Unmarshal(dataBytes, &result.Data)
 	}
 
-	return &result, nil
+	return result, nil
 }
 
-// DeleteDestinationList deletes a destination list
+// DeleteDestinationList deletes a destination list (legacy method)
 func (c *apiClient) DeleteDestinationList(ctx context.Context, id string) error {
 	path := fmt.Sprintf("/policies/v2/destinationlists/%s", id)
-
-	resp, err := c.do(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return fmt.Errorf("failed to make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		// Resource already deleted, consider this success
-		return nil
-	}
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
-	}
-
-	return nil
+	return c.DeleteResource(ctx, path)
 }

@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDestinationsResource_Schema(t *testing.T) {
+func TestTrialconversionsResource_Schema(t *testing.T) {
 
-	r := NewDestinationsResource()
+	r := NewTrialconversionsResource()
 
 	// Test that the resource implements the correct interface
 

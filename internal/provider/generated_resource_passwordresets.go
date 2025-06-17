@@ -4,6 +4,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -67,19 +68,26 @@ func (r *PasswordresetsResource) Create(ctx context.Context, req resource.Create
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement create logic using POST /passwordResets/{customerId}
+	// Create request body from plan
+	requestBody := make(map[string]interface{})
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-// Update updates the passwordresets
-func (r *PasswordresetsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan passwordresetsModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
+	// Make API call
+	result, err := r.client.CreateResource(ctx, "/passwordResets/{customerId}", requestBody)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create passwordresets, got error: %s", err))
 		return
 	}
-	// TODO: Implement update logic - no specific update endpoint found
+
+	// Update state with response data
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			if val, exists := dataMap["id"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Id = types.StringValue(strVal)
+				}
+			}
+		}
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
@@ -91,9 +99,24 @@ func (r *PasswordresetsResource) Read(ctx context.Context, req resource.ReadRequ
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement read logic - no specific read endpoint found
+	// No specific read endpoint found - return current state
+	// This is a no-op read that just returns the current state
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// Update updates the passwordresets
+func (r *PasswordresetsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan passwordresetsModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// No specific update endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No update endpoint configured for passwordresets")
+	return
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 // Delete deletes the passwordresets
@@ -104,5 +127,6 @@ func (r *PasswordresetsResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	// TODO: Implement delete logic - no specific delete endpoint found
+	// No specific delete endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No delete endpoint configured for passwordresets")
 }

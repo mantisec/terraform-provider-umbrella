@@ -1,14 +1,12 @@
 ---
 page_title: "umbrella_tunnels Resource - tunnels"
 description: |-
-  Update the `name`, `siteOriginId`, `networkCIDRs`, and client `deviceType` properties for a tunnel.
-Updates to read-only attributes are ignored.
+  Add a new tunnel to the organization.
 ---
 
 # umbrella_tunnels (Resource)
 
-Update the `name`, `siteOriginId`, `networkCIDRs`, and client `deviceType` properties for a tunnel.
-Updates to read-only attributes are ignored.
+Add a new tunnel to the organization.
 
 ## Example Usage
 

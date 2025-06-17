@@ -68,7 +68,7 @@ func (d *CustomersDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	// TODO: Implement read logic using GET /managed/customers
+	// TODO: Implement read logic using GET /providers/customers
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

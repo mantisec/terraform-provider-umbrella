@@ -4,6 +4,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -67,19 +68,26 @@ func (r *ApikeysResource) Create(ctx context.Context, req resource.CreateRequest
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement create logic using POST /apiKeys
+	// Create request body from plan
+	requestBody := make(map[string]interface{})
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-// Update updates the apikeys
-func (r *ApikeysResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan apikeysModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
+	// Make API call
+	result, err := r.client.CreateResource(ctx, "/apiKeys", requestBody)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create apikeys, got error: %s", err))
 		return
 	}
-	// TODO: Implement update logic using PATCH /apiKeys/{apiKeyId}
+
+	// Update state with response data
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			if val, exists := dataMap["id"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Id = types.StringValue(strVal)
+				}
+			}
+		}
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
@@ -91,9 +99,44 @@ func (r *ApikeysResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement read logic - no specific read endpoint found
+	// No specific read endpoint found - return current state
+	// This is a no-op read that just returns the current state
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// Update updates the apikeys
+func (r *ApikeysResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan apikeysModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// Create request body from plan
+	requestBody := make(map[string]interface{})
+
+	// Build path with ID
+	path := fmt.Sprintf("/apiKeys/{apiKeyId}", plan.Id.ValueString())
+
+	// Make API call
+	result, err := r.client.UpdateResource(ctx, path, requestBody)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update apikeys, got error: %s", err))
+		return
+	}
+
+	// Update state with response data
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			if val, exists := dataMap["id"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Id = types.StringValue(strVal)
+				}
+			}
+		}
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 // Delete deletes the apikeys
@@ -104,5 +147,13 @@ func (r *ApikeysResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	// TODO: Implement delete logic using DELETE /apiKeys/{apiKeyId}
+	// Build path with ID
+	path := fmt.Sprintf("/apiKeys/{apiKeyId}", state.Id.ValueString())
+
+	// Make API call
+	err := r.client.DeleteResource(ctx, path)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete apikeys, got error: %s", err))
+		return
+	}
 }

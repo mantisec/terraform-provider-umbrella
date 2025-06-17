@@ -6,26 +6,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-func TestSummaryDataSource_basic(t *testing.T) {
+func TestPackagesDataSource_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccSummaryDataSourceConfig_basic(),
+				Config: testAccPackagesDataSourceConfig_basic(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 
-					resource.TestCheckDataSourceAttr("umbrella_summary.test", "name", "test-summary"),
+					resource.TestCheckDataSourceAttr("umbrella_packages.test", "name", "test-packages"),
 				),
 			},
 		},
 	})
 }
 
-func testAccSummaryDataSourceConfig_basic() string {
+func testAccPackagesDataSourceConfig_basic() string {
 	return `
 
-data "umbrella_summary" "test" {
+data "umbrella_packages" "test" {
   id = "test-id-12345"
 }
 

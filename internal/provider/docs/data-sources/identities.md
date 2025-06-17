@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_identities Data Source - identities"
 description: |-
-  List all identities for the application.
+  List identities for a specific protocol.
 ---
 
 # umbrella_identities (Data Source)
 
-List all identities for the application.
+List identities for a specific protocol.
 
 ## Example Usage
 

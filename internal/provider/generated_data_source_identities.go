@@ -68,7 +68,7 @@ func (d *IdentitiesDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	// TODO: Implement read logic using GET /appDiscovery/applications/{applicationId}/identities
+	// TODO: Implement read logic using GET /appDiscovery/protocols/{protocolId}/identities
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

@@ -4,6 +4,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -22,17 +23,18 @@ type DestinationsResource struct {
 
 // destinationsModel represents the resource data model
 type destinationsModel struct {
-	Id                   types.String `tfsdk:"id"`
-	Access               types.String `tfsdk:"access"`
-	IsGlobal             types.Bool   `tfsdk:"is_global"`
-	Name                 types.String `tfsdk:"name"`
-	BundleTypeId         types.Int64  `tfsdk:"bundle_type_id"`
-	OrganizationId       types.Int64  `tfsdk:"organization_id"`
-	ThirdpartyCategoryId types.Int64  `tfsdk:"thirdparty_category_id"`
-	CreatedAt            types.Int64  `tfsdk:"created_at"`
-	ModifiedAt           types.Int64  `tfsdk:"modified_at"`
-	IsMspDefault         types.Bool   `tfsdk:"is_msp_default"`
-	MarkedForDeletion    types.Bool   `tfsdk:"marked_for_deletion"`
+	Id             types.String `tfsdk:"id"`
+	Name           types.String `tfsdk:"name"`
+	Description    types.String `tfsdk:"description"`
+	Enabled        types.Bool   `tfsdk:"enabled"`
+	Active         types.Bool   `tfsdk:"active"`
+	Status         types.String `tfsdk:"status"`
+	OrganizationId types.Int64  `tfsdk:"organization_id"`
+	CreatedAt      types.Int64  `tfsdk:"created_at"`
+	ModifiedAt     types.Int64  `tfsdk:"modified_at"`
+	UpdatedAt      types.Int64  `tfsdk:"updated_at"`
+	CreatedBy      types.String `tfsdk:"created_by"`
+	ModifiedBy     types.String `tfsdk:"modified_by"`
 }
 
 // NewDestinationsResource creates a new destinations resource
@@ -65,17 +67,18 @@ func (r *DestinationsResource) Schema(_ context.Context, _ resource.SchemaReques
 	resp.Schema = schema.Schema{
 		Description: "destinations resource",
 		Attributes: map[string]schema.Attribute{
-			"id":                     schema.StringAttribute{Computed: true, Description: "Resource identifier"},
-			"access":                 schema.StringAttribute{Required: true, Description: "The type of access for the destination list (allow/block)"},
-			"is_global":              schema.BoolAttribute{Required: true, Description: "Specifies whether the destination list is a global destination list"},
-			"name":                   schema.StringAttribute{Required: true, Description: "The name of the destination list"},
-			"bundle_type_id":         schema.Int64Attribute{Optional: true, Description: "The type of the destination list in the policy"},
-			"organization_id":        schema.Int64Attribute{Computed: true, Description: "The organization ID"},
-			"thirdparty_category_id": schema.Int64Attribute{Computed: true, Description: "The third-party category ID of the destination list"},
-			"created_at":             schema.Int64Attribute{Computed: true, Description: "The date and time when the destination list was created"},
-			"modified_at":            schema.Int64Attribute{Computed: true, Description: "The date and time when the destination list was modified"},
-			"is_msp_default":         schema.BoolAttribute{Computed: true, Description: "Specifies whether MSP is the default"},
-			"marked_for_deletion":    schema.BoolAttribute{Computed: true, Description: "Specifies whether the destination list is marked for deletion"},
+			"id":              schema.StringAttribute{Computed: true, Description: "Resource identifier"},
+			"name":            schema.StringAttribute{Required: true, Description: "The name of the resource"},
+			"description":     schema.StringAttribute{Optional: true, Description: "The description of the resource"},
+			"enabled":         schema.BoolAttribute{Optional: true, Description: "Whether the resource is enabled"},
+			"active":          schema.BoolAttribute{Optional: true, Description: "Whether the resource is active"},
+			"status":          schema.StringAttribute{Computed: true, Description: "The status of the resource"},
+			"organization_id": schema.Int64Attribute{Computed: true, Description: "The organization ID"},
+			"created_at":      schema.Int64Attribute{Computed: true, Description: "The date and time when the resource was created"},
+			"modified_at":     schema.Int64Attribute{Computed: true, Description: "The date and time when the resource was modified"},
+			"updated_at":      schema.Int64Attribute{Computed: true, Description: "The date and time when the resource was updated"},
+			"created_by":      schema.StringAttribute{Computed: true, Description: "The user who created the resource"},
+			"modified_by":     schema.StringAttribute{Computed: true, Description: "The user who modified the resource"},
 		},
 	}
 }
@@ -87,19 +90,93 @@ func (r *DestinationsResource) Create(ctx context.Context, req resource.CreateRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement create logic using POST /destinationlists/{destinationListId}/destinations
+	// Create request body from plan
+	requestBody := make(map[string]interface{})
+	if !plan.Name.IsNull() {
+		requestBody["name"] = plan.Name.ValueString()
+	}
+	if !plan.Description.IsNull() {
+		requestBody["description"] = plan.Description.ValueString()
+	}
+	if !plan.Enabled.IsNull() {
+		requestBody["enabled"] = plan.Enabled.ValueBool()
+	}
+	if !plan.Active.IsNull() {
+		requestBody["active"] = plan.Active.ValueBool()
+	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-// Update updates the destinations
-func (r *DestinationsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan destinationsModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
+	// Make API call
+	result, err := r.client.CreateResource(ctx, "/destinationlists/{destinationListId}/destinations", requestBody)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create destinations, got error: %s", err))
 		return
 	}
-	// TODO: Implement update logic - no specific update endpoint found
+
+	// Update state with response data
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			if val, exists := dataMap["id"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Id = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["name"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Name = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["description"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Description = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["enabled"]; exists && val != nil {
+				if boolVal, ok := val.(bool); ok {
+					plan.Enabled = types.BoolValue(boolVal)
+				}
+			}
+			if val, exists := dataMap["active"]; exists && val != nil {
+				if boolVal, ok := val.(bool); ok {
+					plan.Active = types.BoolValue(boolVal)
+				}
+			}
+			if val, exists := dataMap["status"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Status = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["organization_id"]; exists && val != nil {
+				if floatVal, ok := val.(float64); ok {
+					plan.OrganizationId = types.Int64Value(int64(floatVal))
+				}
+			}
+			if val, exists := dataMap["created_at"]; exists && val != nil {
+				if floatVal, ok := val.(float64); ok {
+					plan.CreatedAt = types.Int64Value(int64(floatVal))
+				}
+			}
+			if val, exists := dataMap["modified_at"]; exists && val != nil {
+				if floatVal, ok := val.(float64); ok {
+					plan.ModifiedAt = types.Int64Value(int64(floatVal))
+				}
+			}
+			if val, exists := dataMap["updated_at"]; exists && val != nil {
+				if floatVal, ok := val.(float64); ok {
+					plan.UpdatedAt = types.Int64Value(int64(floatVal))
+				}
+			}
+			if val, exists := dataMap["created_by"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.CreatedBy = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["modified_by"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.ModifiedBy = types.StringValue(strVal)
+				}
+			}
+		}
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
@@ -111,9 +188,24 @@ func (r *DestinationsResource) Read(ctx context.Context, req resource.ReadReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement read logic - no specific read endpoint found
+	// No specific read endpoint found - return current state
+	// This is a no-op read that just returns the current state
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// Update updates the destinations
+func (r *DestinationsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan destinationsModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// No specific update endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No update endpoint configured for destinations")
+	return
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 // Delete deletes the destinations
@@ -124,5 +216,6 @@ func (r *DestinationsResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 
-	// TODO: Implement delete logic - no specific delete endpoint found
+	// No specific delete endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No delete endpoint configured for destinations")
 }

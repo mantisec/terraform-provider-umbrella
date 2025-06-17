@@ -68,7 +68,7 @@ func (d *NetworkdevicesDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	// TODO: Implement read logic using GET /networkdevices
+	// TODO: Implement read logic using GET /networkdevices/{originId}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

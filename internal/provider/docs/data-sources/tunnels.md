@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_tunnels Data Source - tunnels"
 description: |-
-  Get a specific tunnel.
+  List the tunnels for an organization.
 ---
 
 # umbrella_tunnels (Data Source)
 
-Get a specific tunnel.
+List the tunnels for an organization.
 
 ## Example Usage
 

@@ -4,6 +4,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -69,19 +70,9 @@ func (r *TrialconversionsResource) Create(ctx context.Context, req resource.Crea
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement create logic - no specific create endpoint found
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-// Update updates the trialconversions
-func (r *TrialconversionsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan trialconversionsModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	// TODO: Implement update logic using PUT /providers/customers/{customerId}/trialconversions
+	// No specific create endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No create endpoint configured for trialconversions")
+	return
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
@@ -93,9 +84,49 @@ func (r *TrialconversionsResource) Read(ctx context.Context, req resource.ReadRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement read logic - no specific read endpoint found
+	// No specific read endpoint found - return current state
+	// This is a no-op read that just returns the current state
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// Update updates the trialconversions
+func (r *TrialconversionsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan trialconversionsModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// Create request body from plan
+	requestBody := make(map[string]interface{})
+
+	// Build path with ID
+	path := fmt.Sprintf("/providers/customers/{customerId}/trialconversions", plan.Id.ValueString())
+
+	// Make API call
+	result, err := r.client.UpdateResource(ctx, path, requestBody)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update trialconversions, got error: %s", err))
+		return
+	}
+
+	// Update state with response data
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			if val, exists := dataMap["id"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Id = types.StringValue(strVal)
+				}
+			}
+			if val, exists := dataMap["conversionStatus"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Conversionstatus = types.StringValue(strVal)
+				}
+			}
+		}
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 // Delete deletes the trialconversions
@@ -106,5 +137,6 @@ func (r *TrialconversionsResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	// TODO: Implement delete logic - no specific delete endpoint found
+	// No specific delete endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No delete endpoint configured for trialconversions")
 }

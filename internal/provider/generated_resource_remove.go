@@ -4,6 +4,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -22,17 +23,7 @@ type RemoveResource struct {
 
 // removeModel represents the resource data model
 type removeModel struct {
-	Id                   types.String `tfsdk:"id"`
-	Access               types.String `tfsdk:"access"`
-	IsGlobal             types.Bool   `tfsdk:"is_global"`
-	Name                 types.String `tfsdk:"name"`
-	BundleTypeId         types.Int64  `tfsdk:"bundle_type_id"`
-	OrganizationId       types.Int64  `tfsdk:"organization_id"`
-	ThirdpartyCategoryId types.Int64  `tfsdk:"thirdparty_category_id"`
-	CreatedAt            types.Int64  `tfsdk:"created_at"`
-	ModifiedAt           types.Int64  `tfsdk:"modified_at"`
-	IsMspDefault         types.Bool   `tfsdk:"is_msp_default"`
-	MarkedForDeletion    types.Bool   `tfsdk:"marked_for_deletion"`
+	Id types.String `tfsdk:"id"`
 }
 
 // NewRemoveResource creates a new remove resource
@@ -65,17 +56,7 @@ func (r *RemoveResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 	resp.Schema = schema.Schema{
 		Description: "remove resource",
 		Attributes: map[string]schema.Attribute{
-			"id":                     schema.StringAttribute{Computed: true, Description: "Resource identifier"},
-			"access":                 schema.StringAttribute{Computed: true, Description: "The type of access for the destination list (allow/block)"},
-			"is_global":              schema.BoolAttribute{Computed: true, Description: "Specifies whether the destination list is a global destination list"},
-			"name":                   schema.StringAttribute{Computed: true, Description: "The name of the destination list"},
-			"bundle_type_id":         schema.Int64Attribute{Computed: true, Description: "The type of the destination list in the policy"},
-			"organization_id":        schema.Int64Attribute{Computed: true, Description: "The organization ID"},
-			"thirdparty_category_id": schema.Int64Attribute{Computed: true, Description: "The third-party category ID of the destination list"},
-			"created_at":             schema.Int64Attribute{Computed: true, Description: "The date and time when the destination list was created"},
-			"modified_at":            schema.Int64Attribute{Computed: true, Description: "The date and time when the destination list was modified"},
-			"is_msp_default":         schema.BoolAttribute{Computed: true, Description: "Specifies whether MSP is the default"},
-			"marked_for_deletion":    schema.BoolAttribute{Computed: true, Description: "Specifies whether the destination list is marked for deletion"},
+			"id": schema.StringAttribute{Computed: true, Description: "Resource identifier"},
 		},
 	}
 }
@@ -87,19 +68,26 @@ func (r *RemoveResource) Create(ctx context.Context, req resource.CreateRequest,
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement create logic - no specific create endpoint found
+	// Create request body from plan
+	requestBody := make(map[string]interface{})
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-// Update updates the remove
-func (r *RemoveResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan removeModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
+	// Make API call
+	result, err := r.client.CreateResource(ctx, "/deviceSettings/SWGEnabled/remove", requestBody)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create remove, got error: %s", err))
 		return
 	}
-	// TODO: Implement update logic - no specific update endpoint found
+
+	// Update state with response data
+	if result.Data != nil {
+		if dataMap, ok := result.Data.(map[string]interface{}); ok {
+			if val, exists := dataMap["id"]; exists && val != nil {
+				if strVal, ok := val.(string); ok {
+					plan.Id = types.StringValue(strVal)
+				}
+			}
+		}
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
@@ -111,9 +99,24 @@ func (r *RemoveResource) Read(ctx context.Context, req resource.ReadRequest, res
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement read logic - no specific read endpoint found
+	// No specific read endpoint found - return current state
+	// This is a no-op read that just returns the current state
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// Update updates the remove
+func (r *RemoveResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan removeModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// No specific update endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No update endpoint configured for remove")
+	return
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 // Delete deletes the remove
@@ -124,5 +127,6 @@ func (r *RemoveResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	// TODO: Implement delete logic using DELETE /destinationlists/{destinationListId}/destinations/remove
+	// No specific delete endpoint found
+	resp.Diagnostics.AddError("Configuration Error", "No delete endpoint configured for remove")
 }

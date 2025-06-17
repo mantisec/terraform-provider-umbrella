@@ -68,7 +68,7 @@ func (d *CnamesDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	// TODO: Implement read logic using GET /config/cnames
+	// TODO: Implement read logic using GET /config/cnames/{cnameId}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }

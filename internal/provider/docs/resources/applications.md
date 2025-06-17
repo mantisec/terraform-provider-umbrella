@@ -1,12 +1,12 @@
 ---
 page_title: "umbrella_applications Resource - applications"
 description: |-
-  Update the label for the application. Provide an application label in the request body.
+  Update the labels for the applications.
 ---
 
 # umbrella_applications (Resource)
 
-Update the label for the application. Provide an application label in the request body.
+Update the labels for the applications.
 
 ## Example Usage
 
