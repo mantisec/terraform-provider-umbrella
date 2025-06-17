@@ -64,7 +64,7 @@ if ($testFiles) {
 
 # Clean generated documentation files
 Write-Host "Removing generated documentation files..." -ForegroundColor Cyan
-$docFiles = Get-ChildItem -Path "docs/resources/*.md" -ErrorAction SilentlyContinue
+$docFiles = Get-ChildItem -Path "internal/provider/docs/*/*.md" -ErrorAction SilentlyContinue
 if ($docFiles) {
     $docFiles | Remove-Item -Force
     Write-Host "  Removed $($docFiles.Count) generated documentation files" -ForegroundColor Green
