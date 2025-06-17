@@ -91,3 +91,147 @@ func (c *apiClient) do(ctx context.Context, method, path string, body []byte) (*
 	}
 	return c.client.Do(req)
 }
+
+// -----------------------------------------------------------------------------
+// Destination Lists API Methods
+// -----------------------------------------------------------------------------
+
+// DestinationListCreateRequest represents a request to create a destination list
+type DestinationListCreateRequest struct {
+	Access       string `json:"access"`
+	IsGlobal     bool   `json:"isGlobal"`
+	Name         string `json:"name"`
+	BundleTypeId *int64 `json:"bundleTypeId,omitempty"`
+}
+
+// DestinationListUpdateRequest represents a request to update a destination list
+type DestinationListUpdateRequest struct {
+	Name string `json:"name"`
+}
+
+// DestinationListObject represents a destination list object from the API
+type DestinationListObject struct {
+	Id                   int64  `json:"id"`
+	OrganizationId       int64  `json:"organizationId"`
+	Access               string `json:"access"`
+	IsGlobal             bool   `json:"isGlobal"`
+	Name                 string `json:"name"`
+	ThirdpartyCategoryId int64  `json:"thirdpartyCategoryId"`
+	CreatedAt            int64  `json:"createdAt"`
+	ModifiedAt           int64  `json:"modifiedAt"`
+	IsMspDefault         bool   `json:"isMspDefault"`
+	MarkedForDeletion    bool   `json:"markedForDeletion"`
+	BundleTypeId         int64  `json:"bundleTypeId"`
+}
+
+// DestinationListResponse represents the API response for destination list operations
+type DestinationListResponse struct {
+	Status struct {
+		Code int    `json:"code"`
+		Text string `json:"text"`
+	} `json:"status"`
+	Data DestinationListObject `json:"data"`
+}
+
+// CreateDestinationList creates a new destination list
+func (c *apiClient) CreateDestinationList(ctx context.Context, req DestinationListCreateRequest) (*DestinationListResponse, error) {
+	path := fmt.Sprintf("/policies/v2/destinationlists")
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := c.do(ctx, http.MethodPost, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+	}
+
+	var result DestinationListResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetDestinationList retrieves a destination list by ID
+func (c *apiClient) GetDestinationList(ctx context.Context, id string) (*DestinationListResponse, error) {
+	path := fmt.Sprintf("/policies/v2/destinationlists/%s", id)
+
+	resp, err := c.do(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("destination list not found")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+	}
+
+	var result DestinationListResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// UpdateDestinationList updates a destination list
+func (c *apiClient) UpdateDestinationList(ctx context.Context, id string, req DestinationListUpdateRequest) (*DestinationListResponse, error) {
+	path := fmt.Sprintf("/policies/v2/destinationlists/%s", id)
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	resp, err := c.do(ctx, http.MethodPatch, path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("destination list not found")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+	}
+
+	var result DestinationListResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// DeleteDestinationList deletes a destination list
+func (c *apiClient) DeleteDestinationList(ctx context.Context, id string) error {
+	path := fmt.Sprintf("/policies/v2/destinationlists/%s", id)
+
+	resp, err := c.do(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return fmt.Errorf("failed to make request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		// Resource already deleted, consider this success
+		return nil
+	}
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("API error: %d %s", resp.StatusCode, resp.Status)
+	}
+
+	return nil
+}

@@ -4,6 +4,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -66,10 +67,10 @@ func (r *DestinationlistsResource) Schema(_ context.Context, _ resource.SchemaRe
 		Description: "destinationlists resource",
 		Attributes: map[string]schema.Attribute{
 			"id":                     schema.StringAttribute{Computed: true, Description: "Resource identifier"},
-			"access":                 schema.StringAttribute{Computed: true, Description: "The type of access for the destination list (allow/block)"},
-			"is_global":              schema.BoolAttribute{Computed: true, Description: "Specifies whether the destination list is a global destination list"},
-			"name":                   schema.StringAttribute{Computed: true, Description: "The name of the destination list"},
-			"bundle_type_id":         schema.Int64Attribute{Computed: true, Description: "The type of the destination list in the policy"},
+			"access":                 schema.StringAttribute{Required: true, Description: "The type of access for the destination list (allow/block)"},
+			"is_global":              schema.BoolAttribute{Required: true, Description: "Specifies whether the destination list is a global destination list"},
+			"name":                   schema.StringAttribute{Required: true, Description: "The name of the destination list"},
+			"bundle_type_id":         schema.Int64Attribute{Optional: true, Description: "The type of the destination list in the policy"},
 			"organization_id":        schema.Int64Attribute{Computed: true, Description: "The organization ID"},
 			"thirdparty_category_id": schema.Int64Attribute{Computed: true, Description: "The third-party category ID of the destination list"},
 			"created_at":             schema.Int64Attribute{Computed: true, Description: "The date and time when the destination list was created"},
@@ -87,7 +88,36 @@ func (r *DestinationlistsResource) Create(ctx context.Context, req resource.Crea
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// TODO: Implement create logic using POST /destinationlists
+
+	// Create API request
+	createReq := DestinationListCreateRequest{
+		Access:   plan.Access.ValueString(),
+		IsGlobal: plan.IsGlobal.ValueBool(),
+		Name:     plan.Name.ValueString(),
+	}
+
+	// Add optional bundle_type_id if provided
+	if !plan.BundleTypeId.IsNull() && !plan.BundleTypeId.IsUnknown() {
+		bundleTypeId := plan.BundleTypeId.ValueInt64()
+		createReq.BundleTypeId = &bundleTypeId
+	}
+
+	// Call API
+	result, err := r.client.CreateDestinationList(ctx, createReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to create destination list", err.Error())
+		return
+	}
+
+	// Update state with response data
+	plan.Id = types.StringValue(fmt.Sprintf("%d", result.Data.Id))
+	plan.OrganizationId = types.Int64Value(result.Data.OrganizationId)
+	plan.ThirdpartyCategoryId = types.Int64Value(result.Data.ThirdpartyCategoryId)
+	plan.CreatedAt = types.Int64Value(result.Data.CreatedAt)
+	plan.ModifiedAt = types.Int64Value(result.Data.ModifiedAt)
+	plan.IsMspDefault = types.BoolValue(result.Data.IsMspDefault)
+	plan.MarkedForDeletion = types.BoolValue(result.Data.MarkedForDeletion)
+	plan.BundleTypeId = types.Int64Value(result.Data.BundleTypeId)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }

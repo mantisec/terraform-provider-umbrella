@@ -273,7 +273,7 @@ func (rg *ResourceGenerator) addDestinationListObjectAttributes(schema *Resource
 		{"access", "types.String", "string", true, false, "The type of access for the destination list (allow/block)"},
 		{"is_global", "types.Bool", "bool", true, false, "Specifies whether the destination list is a global destination list"},
 		{"name", "types.String", "string", true, false, "The name of the destination list"},
-		{"bundle_type_id", "types.Int64", "int64", false, true, "The type of the destination list in the policy"},
+		{"bundle_type_id", "types.Int64", "int64", false, false, "The type of the destination list in the policy"},
 		{"organization_id", "types.Int64", "int64", false, true, "The organization ID"},
 		{"thirdparty_category_id", "types.Int64", "int64", false, true, "The third-party category ID of the destination list"},
 		{"created_at", "types.Int64", "int64", false, true, "The date and time when the destination list was created"},
@@ -288,11 +288,27 @@ func (rg *ResourceGenerator) addDestinationListObjectAttributes(schema *Resource
 				Name:        attr.name,
 				Type:        attr.tfType,
 				GoType:      attr.goType,
-				Required:    attr.required && isInput,
-				Optional:    !attr.required && isInput,
-				Computed:    attr.computed || !isInput,
 				Description: attr.description,
 			}
+
+			// Proper field classification logic
+			if attr.computed {
+				// Always computed fields (timestamps, IDs, etc.)
+				schemaAttr.Computed = true
+				schemaAttr.Required = false
+				schemaAttr.Optional = false
+			} else if isInput {
+				// Input context: required or optional fields
+				schemaAttr.Required = attr.required
+				schemaAttr.Optional = !attr.required
+				schemaAttr.Computed = false
+			} else {
+				// Response context: all fields are computed
+				schemaAttr.Computed = true
+				schemaAttr.Required = false
+				schemaAttr.Optional = false
+			}
+
 			schema.Attributes = append(schema.Attributes, *schemaAttr)
 			processedFields[attr.name] = true
 		}
