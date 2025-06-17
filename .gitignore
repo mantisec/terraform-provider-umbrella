@@ -92,3 +92,6 @@ dist/
 
 # Test Coverage
 coverage
+
+# Agentic infrastructure
+.agentic/

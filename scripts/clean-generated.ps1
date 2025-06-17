@@ -33,6 +33,24 @@ if ($generatedFiles) {
     Write-Host "  No generated Go files found" -ForegroundColor Gray
 }
 
+# Also clean old naming convention files that have generation markers
+Write-Host "Checking for old generated files with markers..." -ForegroundColor Cyan
+$oldGeneratedFiles = @()
+$resourceFiles = Get-ChildItem -Path "internal/provider/resource_*.go" -ErrorAction SilentlyContinue
+$dataSourceFiles = Get-ChildItem -Path "internal/provider/data_source_*.go" -ErrorAction SilentlyContinue
+foreach ($file in ($resourceFiles + $dataSourceFiles)) {
+    $firstLine = Get-Content $file.FullName -First 1 -ErrorAction SilentlyContinue
+    if ($firstLine -and $firstLine.Contains("Code generated")) {
+        $oldGeneratedFiles += $file
+    }
+}
+if ($oldGeneratedFiles) {
+    $oldGeneratedFiles | Remove-Item -Force
+    Write-Host "  Removed $($oldGeneratedFiles.Count) old generated files" -ForegroundColor Green
+} else {
+    Write-Host "  No old generated files found" -ForegroundColor Gray
+}
+
 # Clean generated test files (keeping manually created ones)
 Write-Host "Removing generated test files..." -ForegroundColor Cyan
 $testFiles = Get-ChildItem -Path "internal/provider/tests/*_test.go" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "provider_test.go" }
@@ -57,14 +75,14 @@ if ($docFiles) {
 
 if ($All) {
     Write-Host "Cleaning build artifacts..." -ForegroundColor Yellow
-    
+
     # Clean binary files
     $binaryFiles = Get-ChildItem -Path "terraform-provider-umbrella*" -ErrorAction SilentlyContinue
     if ($binaryFiles) {
         $binaryFiles | Remove-Item -Force
         Write-Host "  Removed $($binaryFiles.Count) binary files" -ForegroundColor Green
     }
-    
+
     # Clean coverage files
     $coverageFiles = Get-ChildItem -Path "coverage.*" -ErrorAction SilentlyContinue
     if ($coverageFiles) {

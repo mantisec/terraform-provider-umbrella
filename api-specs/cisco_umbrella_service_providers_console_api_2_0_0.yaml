@@ -1,0 +1,1224 @@
+openapi: 3.0.1
+info:
+  title: Cisco Umbrella Service Providers Console API
+  version: 2.0.0
+  description: Configure the Service Providers console.
+  contact:
+    name: Cloud Security Developer Community
+
+servers:
+  - url: https://api.umbrella.com/{basePath}
+    variables:
+      basePath:
+        default: admin/v2
+
+tags:
+  - name: Cnames
+  - name: Contacts
+  - name: Logos
+  - name: Umbrella
+
+security:
+  - oauthFlow: []
+
+paths:
+  '/config/cnames':
+    get:
+      tags:
+        - Cnames
+        - Umbrella
+      description: List the cname information for the service providers console.
+      summary: List Cnames
+      operationId: getCnames
+      security:
+        - oauthFlow:
+            - admin.config:read
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: array
+                description: List the cname information for the service providers console.
+                items:
+                  $ref: '#/components/schemas/GetCname'
+              example:
+                - cnameId: 1234567
+                  cname: examples.com
+                  organizationid: 2345677
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+    post:
+      tags:
+        - Cnames
+        - Umbrella
+      description: Add the cname information for the service providers console.
+      summary: Create Cname
+      operationId: createCname
+      security:
+        - oauthFlow:
+            - admin.config:write
+      requestBody:
+        $ref: '#/components/requestBodies/CnameRequestBody'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCname'
+              example:
+                cnameId: 1234567
+                cname: examples.com
+                organizationid: 2345677
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+  '/config/cnames/{cnameId}':
+    get:
+      tags:
+        - Cnames
+        - Umbrella
+      description: Get the cname information for the service providers console.
+      summary: Get Cname
+      operationId: getCname
+      security:
+        - oauthFlow:
+            - admin.config:read
+      parameters:
+        - $ref: '#/components/parameters/cnameIdParam'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCname'
+              example:
+                cnameId: 1234567
+                cname: examples.com
+                organizationid: 2345677
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+    put:
+      tags:
+        - Cnames
+        - Umbrella
+      description: Update the cname information for the service providers console.
+      summary: Update Cname
+      operationId: updateCname
+      security:
+        - oauthFlow:
+            - admin.config:write
+      requestBody:
+        $ref: '#/components/requestBodies/CnameRequestBody'
+      parameters:
+        - $ref: '#/components/parameters/cnameIdParam'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCname'
+              example:
+                cnameId: 1234567
+                cname: examples.com
+                organizationid: 2345677
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+    delete:
+      tags:
+        - Cnames
+        - Umbrella
+      description: Delete a cname for the service providers console.
+      operationId: deleteCname
+      summary: Delete Cname
+      security:
+        - oauthFlow:
+            - admin.config:write
+      parameters:
+        - $ref: '#/components/parameters/cnameIdParam'
+      responses:
+        '204':
+          description: No Content
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Delete a cname for the service providers console. Returns no content.
+                nullable: true
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+  '/config/contacts':
+    get:
+      tags:
+        - Contacts
+        - Umbrella
+      description: List the contacts for the service providers console.
+      summary: List Contacts
+      operationId: getContacts
+      security:
+        - oauthFlow:
+            - admin.config:read
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: array
+                description: List the contacts for the service providers console.
+                items:
+                  $ref: '#/components/schemas/GetContact'
+              example:
+                - contactId: 1324455
+                  organizationId: 2345678
+                  contactType: billing
+                  primaryContact: 'no'
+                  firstName: my-firstname
+                  lastName: my-lastname
+                  createAt: 0
+                  modifiedAt: 0
+                  streetAddress: 123 Circle Court
+                  streetAddress2: Box 123
+                  city: San Jose
+                  state: CA
+                  zipCode: 12345a
+                  countryCode: '124'
+                  emailAddress: seller@cisco.com
+                  orgName: org name
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+    post:
+      tags:
+        - Contacts
+        - Umbrella
+      description: Create a contact for the service providers console.
+      summary: Create Contact
+      operationId: createContact
+      security:
+        - oauthFlow:
+            - admin.config:write
+      requestBody:
+        description: Add the contact information for service providers console.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContact'
+            example:
+              contactType: distributor
+              emailAddress: 'my-contact@email.com'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetContact'
+              example:
+                contactId: 1324455
+                organizationId: 2345678
+                contactType: billing
+                primaryContact: 'no'
+                firstName: my-firstname
+                lastName: my-lastname
+                createdAt: 0
+                modifiedAt: 0
+                streetAddress: 123 Circle Court
+                streetAddress2: Box 123
+                city: San Jose
+                state: CA
+                zipCode: 12345a
+                countryCode: '124'
+                emailAddress: seller@cisco.com
+                orgName: org name
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+  '/config/contacts/{contactId}':
+    get:
+      tags:
+        - Contacts
+        - Umbrella
+      description: Get a contact for the service providers console.
+      summary: Get Contact
+      operationId: getContact
+      parameters:
+      - $ref: '#/components/parameters/contactIdParam'
+      security:
+        - oauthFlow:
+            - admin.config:read
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetContact'
+              example:
+                contactId: 1324455
+                organizationId: 2345678
+                contactType: billing
+                primaryContact: 'no'
+                firstName: my-firstname
+                lastName: my-lastname
+                createdAt: 0
+                modifiedAt: 0
+                streetAddress: 123 Circle Court
+                streetAddress2: Box 123
+                city: San Jose
+                state: CA
+                zipCode: 12345a
+                countryCode: '124'
+                emailAddress: seller@cisco.com
+                orgName: org name
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+    put:
+      tags:
+        - Contacts
+        - Umbrella
+      description: Update a contact for service providers console.
+      summary: Update Contact
+      operationId: updateContact
+      security:
+        - oauthFlow:
+            - admin.config:write
+      requestBody:
+        description: Add the contact information for the service providers console.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContact'
+      parameters:
+        - $ref: '#/components/parameters/contactIdParam'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetContact'
+              example:
+                contactId: 1324455
+                organizationId: 2345678
+                contactType: billing
+                primaryContact: 'no'
+                firstName: my-firstname
+                lastName: my-lastname
+                createdAt: 0
+                modifiedAt: 0
+                streetAddress: 123 Circle Court
+                streetAddress2: Box 123
+                city: San Jose
+                state: CA
+                zipCode: 12345a
+                countryCode: '124'
+                emailAddress: seller@cisco.com
+                orgName: org name
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+    delete:
+      tags:
+        - Contacts
+        - Umbrella
+      description: Delete a contact for the service providers console.
+      summary: Delete Contact
+      operationId: deleteContact
+      security:
+        - oauthFlow:
+            - admin.config:write
+      parameters:
+        - $ref: '#/components/parameters/contactIdParam'
+      responses:
+        '204':
+          description: No Content
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+  '/config/logos':
+    get:
+      tags:
+        - Logos
+        - Umbrella
+      description: Get the logos for the service providers console.
+      summary: List Logos
+      operationId: getLogos
+      security:
+        - oauthFlow:
+            - admin.config:read
+      responses:
+        '200':
+          description: No Content
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: array
+                description: Get logos for the service providers console.
+                items:
+                  $ref: '#/components/schemas/Logo'
+              example:
+                - id: 1235455
+                  organizationId: 123456a
+                  imageUrl: https://examples.com
+                  imageKey: 'a/9/a91cafcae22469451ddb449a547a508ac8b2b12aee6f0bac336445f971de628c232b042ef812a4138c7eab51b64b0df1af591a5c56d73bae14c3179db9198d12.png'
+                  token: '1234567889123456789123456789123456789123456789123456789123456789'
+                  createdAt: 1559836800
+                  modifiedAt: 1559836800
+                  enabled: true
+                  brandingTypeId: 4
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+    post:
+      tags:
+        - Logos
+        - Umbrella
+      description: Create a logo for the service providers console.
+      summary: Create Logo
+      operationId: createLogo
+      security:
+        - oauthFlow:
+            - admin.config:write
+      requestBody:
+        $ref: '#/components/requestBodies/LogoRequestBody'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Logo'
+              example:
+                id: 1235455
+                organizationId: 123456a
+                imageUrl: https://examples.com
+                imageKey: 'a/9/a91cafcae22469451ddb449a547a508ac8b2b12aee6f0bac336445f971de628c232b042ef812a4138c7eab51b64b0df1af591a5c56d73bae14c3179db9198d12.png'
+                token: '1234567889123456789123456789123456789123456789123456789123456789'
+                createdAt: 1559836800
+                modifiedAt: 1559836800
+                enabled: true
+                brandingTypeId: 4
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+  '/config/logos/{logoId}':
+
+    get:
+      tags:
+        - Logos
+        - Umbrella
+      description: Get a logo for the service providers console.
+      summary: Get Logo
+      operationId: getLogo
+      parameters:
+        - $ref: '#/components/parameters/logoIdParam'
+      security:
+        - oauthFlow:
+            - admin.config:read
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Logo'
+              example:
+                id: 1235455
+                organizationId: 123456a
+                imageUrl: https://examples.com
+                imageKey: 'a/9/a91cafcae22469451ddb449a547a508ac8b2b12aee6f0bac336445f971de628c232b042ef812a4138c7eab51b64b0df1af591a5c56d73bae14c3179db9198d12.png'
+                token: '1234567889123456789123456789123456789123456789123456789123456789'
+                createdAt: 1559836800
+                modifiedAt: 1559836800
+                enabled: true
+                brandingTypeId: 4
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+    put:
+      tags:
+        - Logos
+        - Umbrella
+      description: Update a logo for the service providers console.
+      summary: Update Logo
+      operationId: updateLogo
+      parameters:
+        - $ref: '#/components/parameters/logoIdParam'
+      security:
+        - oauthFlow:
+            - admin.config:write
+      requestBody:
+        $ref: '#/components/requestBodies/LogoRequestBody'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Logo'
+              example:
+                id: 1235455
+                organizationId: 123456a
+                imageUrl: https://examples.com
+                imageKey: 'a/9/a91cafcae22469451ddb449a547a508ac8b2b12aee6f0bac336445f971de628c232b042ef812a4138c7eab51b64b0df1af591a5c56d73bae14c3179db9198d12.png'
+                token: '1234567889123456789123456789123456789123456789123456789123456789'
+                createdAt: 1559836800
+                modifiedAt: 1559836800
+                enabled: true
+                brandingTypeId: 4
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+    delete:
+      tags:
+        - Logos
+        - Umbrella
+      description: Delete a logo for the service providers console.
+      summary: Delete Logo
+      operationId: deleteLogo
+      parameters:
+        - $ref: '#/components/parameters/logoIdParam'
+      security:
+        - oauthFlow:
+            - admin.config:write
+      responses:
+        '204':
+          description: No Content
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: string
+                nullable: true
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '403':
+          $ref: '#/components/responses/403Error'
+        '404':
+          $ref: '#/components/responses/404Error'
+        '500':
+          $ref: '#/components/responses/500Error'
+
+components:
+
+  requestBodies:
+
+    CnameRequestBody:
+      description: Add the cname information for the service providers console.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              cname:
+                type: string
+                description: Add the cname information for the service providers console.
+                example: examples.com
+          example:
+            cname: examples.com
+
+    LogoRequestBody:
+      description: Add the logo information for the service providers console.
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            description: Add the logo information for the service providers console.
+            required:
+              - imageKey
+              - token
+              - enabled
+              - brandingTypeId
+              - imageUrl
+            properties:
+              imageKey:
+                type: string
+                format: binary
+                description: The key for the logo.
+                example: 'a/9/a91cafcae22469451ddb449a547a508ac8b2b12aee6f0bac336445f971de628c232b042ef812a4138c7eab51b64b0df1af591a5c56d73bae14c3179db9198d12.png'
+              imageUrl:
+                type: string
+                description: The URL for the logo.
+                format: url
+                example: https://examples.com
+              token:
+                type: string
+                minLength: 64
+                maxLength: 64
+                example: '1234567889123456789123456789123456789123456789123456789123456789'
+                description: The token for the logo.
+              enabled:
+                type: boolean
+                default: false
+                example: true
+              brandingTypeId:
+                type: integer
+                description: The ID of the type of branding.
+                example: 4
+          example:
+            imageUrl: https://examples.com
+            imageKey: 'a/9/a91cafcae22469451ddb449a547a508ac8b2b12aee6f0bac336445f971de628c232b042ef812a4138c7eab51b64b0df1af591a5c56d73bae14c3179db9198d12.png'
+            token: '1234567889123456789123456789123456789123456789123456789123456789'
+            enabled: true
+            brandingTypeId: 4
+
+  securitySchemes:
+    oauthFlow:
+      type: oauth2
+      description: The client credential flow.
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.umbrella.com/auth/v2/token
+          scopes:
+            admin.config:read: 'Read admin config'
+            admin.config:write: 'Write admin config'
+
+  headers:
+
+    Date:
+      schema:
+        type: string
+        format: iso-date-time
+      description: |-
+        The date and time of the request that is represented in ISO 8601 format.
+        The timestamp uses Greenwich Mean Time (GMT).
+      example: 'Date: Mon, 18 Apr 2022 11:11:11 GMT'
+
+    Content-Type:
+      schema:
+        type: string
+      description: The MIME content type of the response body.
+      example: application/json
+
+  parameters:
+    contactIdParam:
+      name: contactId
+      description: The ID of the contact.
+      schema:
+        type: integer
+      in: path
+      required: true
+      example: 12455
+    cnameIdParam:
+      name: cnameId
+      description: The cname ID.
+      schema:
+        type: integer
+      in: path
+      required: true
+      example: 1234
+    logoIdParam:
+      name: logoId
+      in: path
+      description: The logo ID.
+      schema:
+        type: integer
+      required: true
+      example: 5315
+
+  schemas:
+
+    organizationId:
+      type: integer
+      description: The organization ID.
+      example: 1345556
+
+    GetCname:
+      type: object
+      description: The cname information for the service provider.
+      required:
+      - cnameId
+      - cname
+      properties:
+        cnameId:
+          type: integer
+          description: The cname ID.
+          example: 1234325
+        cname:
+          type: string
+          description: The cname for the service providers console.
+          example: 'examples.com'
+        organizationId:
+          $ref: '#/components/schemas/organizationId'
+      example:
+        cnameId: 1234567
+        cname: examples.com
+        organizationid: 2345677
+
+    GetContact:
+      type: object
+      description: List the customer's contact information.
+      required:
+      - emailAddress
+      properties:
+        contactId:
+          type: integer
+          description: The contact ID.
+          example: 1234
+        organizationId:
+          $ref: '#/components/schemas/organizationId'
+        contactType:
+          type: string
+          description: The type of contact.
+          enum: [billing, blockfeedback, report, serviceupdate, support, distributor]
+          example: billing
+        primaryContact:
+          type: string
+          description: Specify if the primary contact.
+          enum: ['no', 'yes']
+          default: 'no'
+          example: 'yes'
+        firstName:
+          type: string
+          description: The first name of the contact.
+          example: my-firstname
+        lastName:
+          type: string
+          description: The last name of the contact.
+          example: my-lastname
+        streetAddress:
+          type: string
+          description: The street address for the contact.
+          example: 123 Circle Court
+        streetAddress2:
+          type: string
+          description: A secondary street address for the contact.
+          example: Center Place
+        city:
+          type: string
+          description: The city where the contact is located.
+          example: San Jose
+        state:
+          type: string
+          description: The state where the contact is located.
+          example: CA
+        zipCode:
+          type: string
+          description: The US zip code where the contact is located.
+          example: '12345'
+        countryCode:
+          type: string
+          description: The country code for the contact.
+          example: US
+          minLength: 2
+          maxLength: 3
+        phoneNumber:
+          type: string
+          description: The phone number for the contact.
+          example: 215-443-0101
+        phoneNumber2:
+          type: string
+          description: The second phone number for the contact.
+          example: 215-902-1022
+        faxNumber:
+          type: string
+          description: The fax number for the contact.
+          example: ''
+        emailAddress:
+          type: string
+          description: The email address for the contact.
+          example: my-contact@cisco.com
+        createdAt:
+          type: integer
+          format: int32
+          description: The time when the contact information was created. The time is specified in milliseconds.
+          example: 1122222222
+        modifiedAt:
+          type: integer
+          format: int32
+          description: The time when the contact information was last modified. The time is specified in milliseconds.
+          example: 1122222222
+        primaryEmailAddress:
+          type: string
+          format: email
+          description: The email address of primary contact of distributor organization.
+          example: name@company.com
+        distributorVisibility:
+          type: boolean
+          default: false
+          description: Specify whether distributors primary contact has visibility into trials.
+          example: true
+        orgName:
+          type: string
+          description: The organization name of the distributor.
+          example: org name
+      example:
+        emailAddress: my-contact@cisco.com
+
+    CreateContact:
+      type: object
+      description: Add the customer's contact information.
+      required:
+      - contactType
+      - emailAddress
+      properties:
+        contactType:
+          type: string
+          description: The type of contact.
+          enum: [billing, blockfeedback, report, serviceupdate ,support, distributor]
+          example: billing
+        primaryContact:
+          type: string
+          description: Specify whether the contact is the primary contact.
+          enum: ['no', 'yes']
+          default: 'no'
+          example: 'yes'
+        firstName:
+          type: string
+          description: The first name of the contact.
+          example: my-firstname
+        lastName:
+          type: string
+          description: The last name of the contact.
+          example: my-lastname
+        streetAddress:
+          type: string
+          description: The street address for the contact.
+          example: 123 Circle Court
+        streetAddress2:
+          type: string
+          description: A secondary street address for the contact.
+          example: Center Place
+        city:
+          type: string
+          description: The city where the contact is located.
+          example: San Jose
+        state:
+          type: string
+          description: The state where the contact is located.
+          example: CA
+        zipCode:
+          type: string
+          description: The US zip code where the contact is located.
+          example: '01938'
+        countryCode:
+          type: string
+          description: The country code for the contact.
+          example: US
+          minLength: 2
+          maxLength: 3
+        phoneNumber:
+          type: string
+          description: The phone number for the contact.
+          example: 215-339-0101
+        phoneNumber2:
+          type: string
+          description: The second phone number for the contact.
+          example: 215-339-0101
+        faxNumber:
+          type: string
+          description: The fax number for the contact.
+          example: 215-339-0101
+        emailAddress:
+          type: string
+          description: The email address for the contact.
+          example: my-contact@cisco.com
+        settings:
+          type: object
+          description: The contact information of the distributor.
+          required:
+          - organization
+          - distributorVisibility
+          properties:
+            primaryContact:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  description: The first name of the distributor contact.
+                  example: my-firstname
+                lastName:
+                  type: string
+                  description: The last name of the distributor contact.
+                  example: my-lastname
+                emailAddress:
+                  type: string
+                  description: Email address for the distributor contact.
+                  example: my-contact@cisco.com
+                phoneNumber:
+                  type: string
+                  description: The phone number for the distributor contact.
+                  example: 215-339-0101
+            organization:
+              type: object
+              description: The properties of the organization.
+              required:
+              - name
+              - email
+              properties:
+                name:
+                  type: string
+                  description: The organization name of distributor.
+                  example: Cisco Systems
+                email:
+                  type: string
+                  description: The organization email of distributor.
+                  example: test@cisco.com
+            distributorVisibility:
+              type: boolean
+              description: Specify whether primary contact has visibility into trials.
+              default: false
+              example: true
+          example:
+            organization:
+              name: Cisco Systems
+              email: name@cisco.com
+            distributorVisibility: true
+      example:
+        contactType: billing
+        emailAddress: seller@cisco.com
+
+    Logo:
+      type: object
+      description: The information about the service provider's logo.
+      required:
+      - id
+      - organizationId
+      - imageKey
+      - token
+      - enabled
+      - brandingTypeId
+      - imageUrl
+      properties:
+        id:
+          type: integer
+          description: The ID of the logo.
+          example: 123455
+        organizationId:
+          type: string
+          description: The ID of the organization associated with the logo.
+          example: 123456a
+        imageUrl:
+          type: string
+          format: url
+          description: The URL for the logo.
+          example: https://examples.com
+        imageKey:
+          type: string
+          format: binary
+          description: The key for the logo.
+          example: 'a/9/a91cafcae22469451ddb449a547a508ac8b2b12aee6f0bac336445f971de628c232b042ef812a4138c7eab51b64b0df1af591a5c56d73bae14c3179db9198d12.png'
+        token:
+          type: string
+          minLength: 64
+          maxLength: 64
+          description: The randomly generated number for the logo.
+          example: '1234567889123456789123456789123456789123456789123456789123456789'
+        createdAt:
+          type: integer
+          format: int32
+          description: The time when the logo was created. The time is specified in milliseconds.
+          example: 1559836800
+        modifiedAt:
+          type: integer
+          format: int32
+          description: The time when the logo was last modified. The time is specified in milliseconds.
+          example: 1559836800
+        enabled:
+          type: boolean
+          default: false
+          example: true
+          description: Specify whether the logo is in use.
+        brandingTypeId:
+          type: integer
+          description: The ID of the type of branding.
+          example: 4
+      example:
+        id: 1235455
+        organizationId: 123456a
+        imageUrl: https://examples.com
+        imageKey: 'a/9/a91cafcae22469451ddb449a547a508ac8b2b12aee6f0bac336445f971de628c232b042ef812a4138c7eab51b64b0df1af591a5c56d73bae14c3179db9198d12.png'
+        token: '1234567889123456789123456789123456789123456789123456789123456789'
+        createdAt: 1559836800
+        modifiedAt: 1559836800
+        enabled: true
+        brandingTypeId: 4
+
+  responses:
+
+    400Error:
+      description: Bad Request
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: Bad Request
+
+    401Error:
+      description: Unauthorized
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: Unauthorized
+
+    403Error:
+      description: Forbidden
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: Forbidden
+
+    404Error:
+      description: Not Found
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: Not Found
+
+    500Error:
+      description: Internal Server error
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+          example:
+            message: Internal Server Error

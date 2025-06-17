@@ -80,6 +80,7 @@ type OutputConfig struct {
 	DataSourceFilePattern string `yaml:"data_source_file_pattern"`
 	FormatCode            bool   `yaml:"format_code"`
 	AddLicenseHeader      bool   `yaml:"add_license_header"`
+	AddGenerationMarker   bool   `yaml:"add_generation_marker"`
 }
 
 // LoadConfig loads configuration from a YAML file

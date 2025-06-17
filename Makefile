@@ -52,8 +52,15 @@ clean:
 .PHONY: clean-generated
 clean-generated:
 	@echo "Cleaning generated files from API specifications..."
-	# Generated Go files in internal/provider/
+	# Generated Go files in internal/provider/ (new naming convention)
 	rm -f internal/provider/generated_*.go
+	# Also clean old naming convention files that have generation markers
+	@for file in internal/provider/resource_*.go internal/provider/data_source_*.go; do \
+		if [ -f "$$file" ] && head -1 "$$file" | grep -q "Code generated"; then \
+			echo "Removing generated file: $$file"; \
+			rm -f "$$file"; \
+		fi; \
+	done
 	# Generated test files (keeping manually created ones)
 	rm -f internal/provider/tests/*_test.go
 	# Keep provider_test.go as it's manually created

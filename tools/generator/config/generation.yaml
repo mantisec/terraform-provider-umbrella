@@ -13,7 +13,7 @@ resources:
     generate_crud: true
     generate_import: true
     generate_docs: true
-    
+
   # Resource-specific overrides
   overrides:
     # Example: Override settings for specific resources
@@ -37,7 +37,7 @@ parsing:
   # Skip endpoints that match these patterns
   skip_endpoints:
     - "/token"  # Auth endpoints typically don't need resources
-  
+
   # Resource naming conventions
   naming:
     # Convert operation IDs to resource names
@@ -56,10 +56,11 @@ oauth2:
 
 # Output settings
 output:
-  # File naming patterns
-  resource_file_pattern: "resource_%s.go"
-  data_source_file_pattern: "data_source_%s.go"
-  
+  # File naming patterns - prefixed with "generated_" for easy cleanup
+  resource_file_pattern: "generated_resource_%s.go"
+  data_source_file_pattern: "generated_data_source_%s.go"
+
   # Code formatting
   format_code: true
   add_license_header: false
+  add_generation_marker: true

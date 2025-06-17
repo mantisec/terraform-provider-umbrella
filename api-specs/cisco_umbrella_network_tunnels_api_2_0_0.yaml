@@ -1,0 +1,2400 @@
+openapi: 3.0.1
+info:
+  title: Cisco Umbrella Network Tunnels API
+  description: Manage the network tunnels in the organization.
+  version: 2.0.0
+  contact:
+    name: Cloud Security Developer Community
+
+servers:
+  - url: https://api.umbrella.com/{basePath}
+    variables:
+      basePath:
+        default: deployments/v2
+
+security:
+  - oauthFlow: []
+
+tags:
+  - name: Data Center
+  - name: Organization Tunnel
+  - name: Debugging
+  - name: Umbrella
+
+paths:
+  '/datacenters':
+    get:
+      summary: List Data Centers
+      operationId: getDatacenters
+      security:
+        - oauthFlow:
+          - deployments.datacenters:read
+      description: |-
+        List the information about the IPsec-enabled data centers.
+        The data center information includes the IP address and location details.
+      tags:
+        - Data Center
+        - Umbrella
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: object
+                description: The information about the IPsec-enabled data centers.
+                properties:
+                  continents:
+                    type: array
+                    description: The list of continents.
+                    items:
+                      type: object
+                      description: The properties of the continent.
+                      properties:
+                        cities:
+                          type: array
+                          description: The list of cities.
+                          items:
+                            type: object
+                            description: The properties of the city.
+                            properties:
+                              latitude:
+                                type: string
+                                description: The latitude of the city.
+                                example: '52.354662'
+                              longitude:
+                                type: string
+                                description: The longitude of the city.
+                                example: '4.955532'
+                              name:
+                                type: string
+                                description: The name of the city.
+                                example: Amsterdam
+                              dc:
+                                type: string
+                                description: The domain of the data center located in the city.
+                                example: ams1.edc
+                              range:
+                                type: string
+                                description: The IP or CIDR range of the data center that is located in the city.
+                                example: 146.112.98.2/32
+                              fqdn:
+                                type: string
+                                example: eu2-b.vpn.sig.umbrella.com
+                                description: The FQDN associated with the city. Returns the FQDN if available.
+                        name:
+                          type: string
+                          description: The name of the continent.
+                          example: Europe
+              example:
+                continents:
+                  - cities:
+                      - latitude: '52.354662'
+                        longitude: '4.955532'
+                        name: 'Amsterdam'
+                        dc: 'ams1.edc'
+                        range: '146.112.98.2/32'
+                        fqdn: 'eu2-b.vpn.sig.umbrella.com'
+                    name: Europe
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  '/tunnels':
+    get:
+      summary: List Tunnels
+      operationId: listTunnels
+      description: List the tunnels for an organization.
+      security:
+        - oauthFlow:
+          - deployments.tunnels:read
+      tags:
+        - Organization Tunnel
+        - Umbrella
+      parameters:
+        - in: query
+          name: includeState
+          schema:
+            default: false
+            type: boolean
+          description: Specify whether to include the tunnel state information in the response.
+          required: false
+        - in: query
+          name: limit
+          description: |-
+            The number of items to return in the collection. If not set, all tunnels are returned.
+          required: false
+          schema:
+            type: integer
+        - in: query
+          name: startKey
+          description: |-
+            Specify where to start reading in the tunnel collection (`startKey` correlates to the first tunnel to return).
+            If the `startKey` query parameter is not included in the API request, Umbrella reads the collection from the first available tunnel.
+            When the API request includes the `limit` query parameter and you have more tunnels to read,
+            Umbrella returns the value of `startKey` for the next tunnel in the hypermedia Link header.
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: filters
+          description: |-
+            Filters the tunnel list by tunnel name, device type, service type, status, data center, or site origin ID.
+            For example:
+            ```
+            {
+              "name": "test",
+              "deviceType": "ISR",
+              "serviceType": "SIG",
+              "status": "UP",
+              "dataCenter": "pao1.edc",
+              "siteOriginId": 123
+            }
+            ```
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OKs
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+            Total-Item-Count:
+              schema:
+                type: string
+              description: The total number of active, inactive, and unestablished tunnels in the organization.
+              example: '500'
+            Total-Distinct-DC-Count:
+              schema:
+                type: string
+              description: The number of distinct data centers in the organization.
+              example: '2'
+            Total-Active-Item-Count:
+              schema:
+                type: string
+              description: The total number of active tunnels in the organization.
+              example: '5'
+            Total-Inactive-Item-Count:
+              schema:
+                type: string
+              description: The total number of inactive tunnels in the organization.
+              example: '10'
+            Link:
+              schema:
+                type: string
+              description: |-
+                The hypermedia links are formatted as a string. Use to provide parameters for pagination.
+                Only available if request limits the number of tunnels returned.
+                The link is a relative path. The `rel` value is always `next` (pagination moves forward).
+          content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TunnelResourceObjectWithState'
+                example:
+                  - id: 1122321
+                    uri: /tunnels/1122321
+                    name: Site01Tunnel
+                    siteOriginId: 123456
+                    client:
+                      deviceType: ASA
+                      authentication:
+                        type: PSK
+                        parameters:
+                          id: admin@2561066-237952254-umbrella.com
+                          modifiedAt: '2018-06-13T16:07:07.222Z'
+                    transport:
+                      protocol: IPSec
+                    serviceType: SIG
+                    networkCIDRs:
+                      - 123.111.222.25/24
+                      - 111.222.39.1/32
+                    meta: {}
+                    createdAt: '2018-06-13T16:07:07.222Z'
+                    modifiedAt: '2018-06-13T16:07:07.222Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      summary: Create Tunnel
+      operationId: addTunnel
+      description: Add a new tunnel to the organization.
+      security:
+        - oauthFlow:
+          - deployments.tunnels:write
+      tags:
+        - Organization Tunnel
+        - Umbrella
+      requestBody:
+        description: The tunnel to create.
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: The name of the tunnel.
+                  siteOriginId:
+                    type: integer
+                    description: The site origin ID to associate with the tunnel.
+                    example: 123456
+                  deviceType:
+                    type: string
+                    description: |-
+                      The type of device where the tunnel originates. The default value is `other`.
+                    # Valid values are: ASA, FTD, ISR, Meraki MX, Viptela cEdge, Viptela vEdge, other.
+                    enum:
+                      - ASA
+                      - FTD
+                      - ISR
+                      - Meraki MX
+                      - Viptela cEdge
+                      - Viptela vEdge
+                      - other
+                  serviceType:
+                    $ref: '#/components/schemas/serviceType'
+                  networkCIDRs:
+                    $ref: '#/components/schemas/networkCIDRs'
+                  transport:
+                    type: object
+                    properties:
+                      protocol:
+                        description: The tunnel transport protocol. The default tunnel transport protocol is IPSec.
+                        type: string
+                        enum:
+                          - IPSec
+                        example: IPSec
+                  authentication:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: The authentication method. The default is pre-shared key (PSK).
+                        enum:
+                          - PSK
+                      parameters:
+                        type: object
+                        properties:
+                          idPrefix:
+                            type: string
+                            description: |-
+                              A human-readable ID for the tunnel, used to generate the ID portion of the Pre-Shared Key.
+                              If omitted, the ID is generated and provided in response. Tunnels with a device type of ASA
+                              must provide an IP address string for this field. Tunnels with a device type of 'other'
+                              may use either an IP address or a human-readable string. PSK IDs are not automatically generated
+                              for ASA devices.
+                          secret:
+                            type: string
+                            description: |-
+                              The secret portion of a Pre-Shared Key (PSK).
+                              If omitted, a secret is generated and provided in the response.
+                              Secrets are a sequence of 16 to 64 characters, and contain at least one upper
+                              and lowercase letter, one number, and no special characters.
+                required:
+                  - name
+              example:
+                name: Site01Tunnel
+                siteOriginId: 123456
+                serviceType: SIG
+                deviceType: ASA
+                networkCIDRs:
+                  - 123.111.222.25/24
+                  - 111.222.39.1/32
+                transport:
+                  protocol: IPSec
+                authentication:
+                  type: PSK
+                  parameters:
+                    idPrefix: prefix-string
+                    secret: This123Secret
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TunnelResourceObjectWithSecret'
+              example:
+                id: 1122321
+                uri: /tunnels/1122321
+                name: Site01Tunnel
+                siteOriginId: 123456
+                client:
+                  deviceType: ASA
+                  authentication:
+                    type: PSK
+                    parameters:
+                      id: admin@2561066-237952254-umbrella.com
+                      modifiedAt: '2018-06-13T16:07:07.222Z'
+                      secret: This123Secret
+                transport:
+                  protocol: IPSec
+                serviceType: SIG
+                networkCIDRs:
+                  - 123.111.222.25/24
+                  - 111.222.39.1/32
+                meta: {}
+                createdAt: '2018-06-13T16:07:07.222Z'
+                modifiedAt: '2018-06-13T16:07:07.222Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  '/tunnels/{id}':
+    get:
+      summary: Get Tunnel
+      operationId: getTunnel
+      description: Get a specific tunnel.
+      security:
+        - oauthFlow:
+          - deployments.tunnels:read
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the tunnel.
+          required: true
+          schema:
+            type: integer
+      tags:
+        - Organization Tunnel
+        - Umbrella
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TunnelResourceObject'
+              example:
+                id: 1122321
+                uri: /tunnels/1122321
+                name: Site01Tunnel
+                siteOriginId: 123456
+                client:
+                  deviceType: ASA
+                  authentication:
+                    type: PSK
+                    parameters:
+                      id: admin@2561066-237952254-umbrella.com
+                      modifiedAt: '2018-06-13T16:07:07.222Z'
+                transport:
+                  protocol: IPSec
+                serviceType: SIG
+                networkCIDRs:
+                  - 123.111.222.25/24
+                  - 111.222.39.1/32
+                meta: {}
+                createdAt: '2018-06-13T16:07:07.222Z'
+                modifiedAt: '2018-06-13T16:07:07.222Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    put:
+      summary: Update Tunnel
+      operationId: updateTunnel
+      security:
+        - oauthFlow:
+          - deployments.tunnels:write
+      description: |-
+        Update the `name`, `siteOriginId`, `networkCIDRs`, and client `deviceType` properties for a tunnel.
+        Updates to read-only attributes are ignored.
+      tags:
+        - Organization Tunnel
+        - Umbrella
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the tunnel.
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        description: Provide a tunnel to update.
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: |-
+                      Display name for the tunnel. The tunnel name is required. The name can't exceed 50 characters
+                      in length and can not have any special characters other than spaces and hyphens.
+                    example: Site01Tunnel
+                  siteOriginId:
+                    type: integer
+                    description: The site origin ID that is associated with the tunnel.
+                    example: 123
+                  networkCIDRs:
+                    $ref: '#/components/schemas/networkCIDRs'
+                  client:
+                    type: object
+                    description: The configuration metadata for the client.
+                    properties:
+                      deviceType:
+                        type: string
+                        description: |-
+                          The type of device from which the tunnel originates. The default value is `other`.
+                        # Valid values are: ASA, FTD, ISR, Meraki MX, Viptela cEdge, Viptela vEdge, other.
+                        enum:
+                          - ASA
+                          - FTD
+                          - ISR
+                          - Meraki MX
+                          - Viptela cEdge
+                          - Viptela vEdge
+                          - other
+                        example: ASA
+                      authentication:
+                        type: object
+                        description: The authentication context of the client.
+                        properties:
+                          type:
+                            type: string
+                            enum:
+                              - PSK
+                            example: PSK
+                            readOnly: true
+                          parameters:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                                description: |-
+                                  The PSK ID. If an IP address is used as the ID, the IP address is returned.
+                                readOnly: true
+                                example: admin@2561066-237952254-umbrella.com
+                              modifiedAt:
+                                $ref: '#/components/schemas/modifiedAt'
+                required:
+                  - name
+                  - client
+              example:
+                name: Site01Tunnel
+                siteOriginId: 123
+                networkCIDRs:
+                  - '123.111.222.25/24'
+                  - '111.222.39.1/32'
+                client:
+                  deviceType: ASA
+                  authentication:
+                    type: PSK
+                    parameters:
+                      id: admin@2561066-237952254-umbrella.com
+                      modifiedAt: '2018-06-13T16:07:07.222Z'
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TunnelResourceObject'
+              example:
+                id: 1122321
+                uri: /tunnels/1122321
+                name: Site01Tunnel
+                siteOriginId: 123456
+                client:
+                  deviceType: ASA
+                  authentication:
+                    type: PSK
+                    parameters:
+                      id: admin@2561066-237952254-umbrella.com
+                      modifiedAt: '2018-06-13T16:07:07.222Z'
+                transport:
+                  protocol: IPSec
+                serviceType: SIG
+                networkCIDRs:
+                  - 123.111.222.25/24
+                  - 111.222.39.1/32
+                meta: {}
+                createdAt: '2018-06-13T16:07:07.222Z'
+                modifiedAt: '2018-06-13T16:07:07.222Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      summary: Delete Tunnel
+      operationId: deleteTunnel
+      description: Delete a tunnel in the organization.
+      security:
+        - oauthFlow:
+          - deployments.tunnels:write
+      tags:
+        - Organization Tunnel
+        - Umbrella
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the tunnel.
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        description: Provide the tunnel to delete.
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detachPolicies:
+                    type: boolean
+                    default: true
+                    description: |-
+                      Specifies whether to detach associated policies from the tunnel.
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Tunnel deleted successfully
+              example:
+                message: Tunnel deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  '/tunnels/{id}/keys':
+    post:
+      summary: Update and Rotate Tunnel Credentials
+      description: Update and rotate the tunnel credentials.
+      tags:
+        - Organization Tunnel
+        - Umbrella
+      operationId: updateTunnelCredentials
+      security:
+        - oauthFlow:
+          - deployments.tunnels:write
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the tunnel.
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        description: |-
+            The credentials and options to update and rotate the tunnel. Umbrella stores the
+            previous credentials for 24 hours unless stated.
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deprecateCurrentKeys:
+                    type: boolean
+                    default: false
+                    description: |-
+                      Specifies whether to deprecate any existing credentials.
+                      The 24-hour window does not apply.
+                      Umbrella deletes the existing keys immediately. Set either both `idPrefix` and `secret` or `autoRotate`
+                      to true. The default value is false.
+                  autoRotate:
+                    type: boolean
+                    description: |-
+                      Specifies whether to autogenerate keys.
+                      The 24-hour window applies. Umbrella ignores any passed in credentials.
+                  psk:
+                    type: object
+                    properties:
+                      idPrefix:
+                        type: string
+                        description: |-
+                          Required if autoRotate is set to false. To be concatenated with server-side parameters
+                          to generate the ID for the pre-shared key (PSK). If the value of `idPrefix` matches the current `idPrefix`,
+                          then 24-hour credential storage is disabled. If the tunnel uses an IP address as the PSK ID, format the IP address as a string;
+                          `autoRotate` is disabled.
+                      secret:
+                        type: string
+                        description: |-
+                          The secret aspect of a Pre-Shared Key. Optional, but either idPrefix OR idPrefix
+                          and secret must be passed OR auto-Rotate set to true.
+                          (16-64 characters, at least one upper and lowercase letter, one number, no special characters.)
+                required:
+                  - autoRotate
+              example:
+                deprecateCurrentKeys: true
+                autoRotate: true
+                psk:
+                  idPrefix: prefix-string
+                  secret: Secret123
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TunnelResourceObjectWithSecret'
+              example:
+                id: 1122321
+                uri: /tunnels/1122321
+                name: Site01Tunnel
+                siteOriginId: 123456
+                client:
+                  deviceType: ASA
+                  authentication:
+                    type: PSK
+                    parameters:
+                      id: admin@2561066-237952254-umbrella.com
+                      modifiedAt: '2018-06-13T16:07:07.222Z'
+                      secret: This123Secret
+                transport:
+                  protocol: IPSec
+                serviceType: SIG
+                networkCIDRs:
+                  - 123.111.222.25/24
+                  - 111.222.39.1/32
+                meta: {}
+                createdAt: '2018-06-13T16:07:07.222Z'
+                modifiedAt: '2018-06-13T16:07:07.222Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  '/tunnels/{id}/policies':
+    get:
+      summary: List Policies for Tunnel
+      operationId: getTunnelPolicies
+      security:
+        - oauthFlow:
+          - deployments.tunnels:read
+      description: List the policies that include the network tunnel.
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the tunnel.
+          required: true
+          schema:
+            type: integer
+        - in: query
+          schema:
+            type: string
+            enum:
+            - firewallrule
+            - web
+          name: type
+          description: Filter the list of policies to only include the specified type.
+          required: false
+        - in: query
+          schema:
+            type: integer
+          name: limit
+          description: The number of items to return in the collection.
+          required: false
+        - in: query
+          schema:
+            type: integer
+          name: page
+          description: |-
+            The number of a page in the collection. Use with the limit parameter to implement pagination.
+          required: false
+      tags:
+        - Organization Tunnel
+        - Umbrella
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: array
+                description: Policies associated with a tunnel.
+                readOnly: true
+                items:
+                  type: object
+                  readOnly: true
+                  properties:
+                    id:
+                      type: integer
+                      description: The resource ID. Use the ID as reference for subsequent requests.
+                      example: 1122321
+                    type:
+                      type: string
+                      description: |-
+                        The type of policy.
+                      # Valid values are: 'web' or 'firewallrule'.
+                      enum:
+                        - firewallrule
+                        - web
+                    name:
+                      type: string
+                      description: The name of the policy.
+                      example: Test Firewall Rule (Block Application)
+                    organizationId:
+                      type: integer
+                      description: The organization ID.
+                      example: 33451234
+                    priority:
+                      type: integer
+                      description: An integer that represents the position of the policy in the policy list.
+                      example: 4
+                    isDefault:
+                      type: boolean
+                      description: Indicates whether the policy is the default policy.
+                    isAppliedDirectly:
+                      type: boolean
+                      description: |-
+                        True if the tunnel is applied directly to this policy, false if the policy
+                        is configured to use all tunnels.
+                    createdAt:
+                      type: string
+                      description: The date and time (timestamp) when the tunnel was created.
+                      format: date-time
+                      example: '2018-06-13T16:07:07.222Z'
+                    modifiedAt:
+                      $ref: '#/components/schemas/modifiedAt'
+                    uri:
+                      type: string
+                      description: Resource URI
+                      example: /v2/tunnels/8765432/policies
+              example:
+                - id: 1122321
+                  type: web
+                  name: Test Firewall Rule (Block Application)
+                  organizationId: 33451234
+                  priority: 4
+                  isDefault: true
+                  isAppliedDirectly: true
+                  createdAt: '2018-06-13T16:07:07.222Z'
+                  modifiedAt: '2018-06-13T16:07:07.222Z'
+                  uri: /v2/tunnels/8765432/policies
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  '/tunnelsState':
+    get:
+      tags:
+        - Debugging
+        - Umbrella
+      summary: List Tunnel State Information
+      operationId: getOrgTunnelState
+      security:
+        - oauthFlow:
+          - deployments.tunnels:read
+      description: List the tunnel state information.
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TunnelStateInformation'
+              example:
+                - tunnelId: '163367136'
+                  status: UP
+                  dc: chi1.edc
+                  dcName: Equinix Chicago
+                  dcDesc: 'Chicago, Illinois - US'
+                  ikeState: ESTABLISHED
+                  ipsecState: INSTALLED
+                  peerId: unique-value@1234567-234567812-umbrella.com
+                  peerIp: 198.18.195.1
+                  localIp: 198.25.43.19
+                  peerPort: '4500'
+                  ike:
+                    age: '6194'
+                    dhGroup: MODP_2048
+                    prfAlgo: PRF_HMAC_SHA1
+                    encAlgo: AES_CBC
+                    initiatorSpi: cf065c564a511834
+                    responderSpi: a3cd5c8533c80069
+                  ipsec:
+                    age: '6194'
+                    integrityAlgo: HMAC_SHA1_96
+                    encAlgo: 'NULL'
+                    encKeySize: '128'
+                    spiIn: "c6ef7503"
+                    spiOut: '00010102'
+                    peerSelectors:
+                      - "0.0.0.0/0"
+                  data:
+                    packetsIn: '10'
+                    bytesIn: '1000'
+                    idleTimeIn: '100'
+                    packetsOut: '10'
+                    bytesOut: '1000'
+                    idleTimeOut: '100'
+                    initialized: '2023-10-19T22:15:12.765623734Z'
+                  modifiedAt: '2018-06-13T16:07:07.222Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  '/tunnels/{id}/state':
+    get:
+      tags:
+        - Debugging
+        - Umbrella
+      summary: Get Tunnel State
+      operationId: getTunnelState
+      security:
+        - oauthFlow:
+          - deployments.tunnels:read
+      description: Get the tunnel state information.
+      parameters:
+      - in: path
+        name: id
+        description: The ID of the tunnel.
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TunnelStateInformation'
+              example:
+                - tunnelId: '163367136'
+                  status: UP
+                  dc: chi1.edc
+                  dcName: Equinix Chicago
+                  dcDesc: 'Chicago, Illinois - US'
+                  ikeState: ESTABLISHED
+                  ipsecState: INSTALLED
+                  peerId: unique-value@1234567-234567812-umbrella.com
+                  peerIp: 198.18.195.1
+                  localIp: 198.25.43.19
+                  peerPort: '4500'
+                  ike:
+                    age: '6194'
+                    dhGroup: MODP_2048
+                    prfAlgo: PRF_HMAC_SHA1
+                    encAlgo: AES_CBC
+                    initiatorSpi: cf065c564a511834
+                    responderSpi: a3cd5c8533c80069
+                  ipsec:
+                    age: '6194'
+                    integrityAlgo: HMAC_SHA1_96
+                    encAlgo: 'NULL'
+                    encKeySize: '128'
+                    spiIn: "c6ef7503"
+                    spiOut: '00010102'
+                    peerSelectors:
+                      - "0.0.0.0/0"
+                  data:
+                    packetsIn: '10'
+                    bytesIn: '1000'
+                    idleTimeIn: '100'
+                    packetsOut: '10'
+                    bytesOut: '1000'
+                    idleTimeOut: '100'
+                    initialized: '2023-10-19T22:15:12.765623734Z'
+                  modifiedAt: '2018-06-13T16:07:07.222Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  '/tunnels/{id}/events':
+    get:
+      tags:
+        - Debugging
+        - Umbrella
+      summary: Get Tunnel Error Events
+      operationId: getTunnelErrorEvents
+      security:
+        - oauthFlow:
+          - deployments.tunnels:read
+      description: Get the recent tunnel error events.
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the tunnel.
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: hour
+          description: Retrieve events that occur in the last number of hours.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 168
+        - in: query
+          name: limit
+          description: Retrieve up to this number of events.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+        - in: query
+          name: cursor
+          description: Return events from the cursor where `0` points to the latest event.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: object
+                description: The tunnel error metadata and event records.
+                properties:
+                  meta:
+                    description: The tunnel error metadata.
+                    type: object
+                    properties:
+                      records:
+                        type: integer
+                        readOnly: true
+                        description: The number of records returned for tunnel error events.
+                        example: 100
+                      cursor:
+                        type: string
+                        readOnly: true
+                        description: |-
+                          The unique cursor identifier constructed from the organization ID, tunnel ID,
+                          timestamp, and event ID for an error event.
+                        example: MjM5MDE0OCwxNjMzNjcxMzYsMTU2MDQ1OTAwMCwxTWJoMTF0T3FYS0dzMXBubkxXbXhtSkRnQVo=
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      description: The tunnel error event record.
+                      properties:
+                        time:
+                          type: string
+                          readOnly: true
+                          format: date-time
+                          description: The date and time when the error event was generated (UTC time, with milliseconds).
+                          example: '2018-06-13T16:07:07.222Z'
+                        eventId:
+                          type: string
+                          readOnly: true
+                          description: The unique event ID.
+                          example: 1Ip3mRXguys9u4mIwfQXj63KwqL
+                        type:
+                          type: string
+                          readOnly: true
+                          description: |
+                            The Event Type:
+                            * SSEN - StrongSwan-based Error Notify Events
+                            * OTHER - others/future
+                          enum:
+                            - SSEN
+                            - OTHER
+                          default: SSEN
+                          example: SSEN
+                        code:
+                          type: string
+                          readOnly: true
+                          description: |
+                            The type-specific error codes:
+                            * LOCAL_AUTH_FAILED - creating local authentication data failed
+                            * PEER_AUTH_FAILED - peer authentication failed
+                            * PARSE_ERROR_HEADER - parsing IKE header failed
+                            * PARSE_ERROR_BODY - parsing IKE message failed
+                            * RETRANSMIT_SEND_TIMEOUT - IKE message retransmission timed out
+                            * HALF_OPEN_TIMEOUT - IKE SA timed out before it could be established
+                            * PROPOSAL_MISMATCH_IKE - received IKE SA proposals mismatch
+                            * PROPOSAL_MISMATCH_CHILD - received CHILD SA proposals mismatch
+                            * TS_MISMATCH - received traffic selectors mismatch
+                            * INSTALL_CHILD_SA_FAILED - installing IPsec SA failed
+                            * INSTALL_CHILD_POLICY_FAILED - installing IPsec policy failed
+                            * UNIQUE_REPLACE - replaced old IKE SA due to uniqueness policy
+                            * UNIQUE_KEEP - keep existing in favor of rejected new IKE SA due to uniqueness policy
+                            * VIP_FAILURE - virtual IP failure
+                            * AUTHORIZATION_FAILED - an authorization plugin prevented establishment of an IKE SA
+                            * RETRANSMIT_SEND - IKE message retransmission
+
+                            For additional information, see https://datatracker.ietf.org/doc/html/rfc7296.
+                          enum:
+                            - LOCAL_AUTH_FAILED
+                            - PEER_AUTH_FAILED
+                            - PARSE_ERROR_HEADER
+                            - PARSE_ERROR_BODY
+                            - RETRANSMIT_SEND_TIMEOUT
+                            - HALF_OPEN_TIMEOUT
+                            - PROPOSAL_MISMATCH_IKE
+                            - PROPOSAL_MISMATCH_CHILD
+                            - TS_MISMATCH
+                            - INSTALL_CHILD_SA_FAILED
+                            - INSTALL_CHILD_POLICY_FAILED
+                            - UNIQUE_REPLACE
+                            - UNIQUE_KEEP
+                            - VIP_FAILURE
+                            - AUTHORIZATION_FAILED
+                            - RETRANSMIT_SEND
+                          example: PEER_AUTH_FAILED
+                        reason:
+                          type: string
+                          readOnly: true
+                          description: The description of the error.
+                          example: peer authentication failed
+                        peerId:
+                          type: string
+                          readOnly: true
+                          description: The optional peer IKE ID (if available).
+                          example: 1IxCbTufj2EIReeODie0rMbKbyF.v1@2561066-237952254-umbrella.com
+                        peerIp:
+                          type: string
+                          readOnly: true
+                          description: The optional peer IP (if available).
+                          example: 11.11.11.11
+                        peerPort:
+                          type: string
+                          readOnly: true
+                          description: The optional peer port (if available).
+                          example: '4500'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  '/tunnels/{id}/globalEvents/sourceIp/{ip}':
+    get:
+      tags:
+        - Debugging
+        - Umbrella
+      summary: Get Tunnel Global Error Events
+      operationId: getTunnelGlobalErrorEvents
+      security:
+        - oauthFlow:
+          - deployments.tunnels:read
+      description: Get the recent global error events.
+      parameters:
+        - in: path
+          name: id
+          description: The ID of the tunnel.
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: ip
+          description: The source IPv4 address of the tunnel.
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: hour
+          description: Retrieve events that occur in the last number of hours.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 168
+        - in: query
+          name: limit
+          description: Retrieve up to this number of events.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+        - in: query
+          name: cursor
+          description: Return events from the cursor where `0` points to the latest event.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              $ref: '#/components/headers/Content-Type'
+            Date:
+              $ref: '#/components/headers/Date'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  description: The tunnel global error metadata and event records.
+                  properties:
+                    meta:
+                      description: The tunnel global error metadata.
+                      type: object
+                      properties:
+                        records:
+                          type: integer
+                          readOnly: true
+                          description: The number of records returned for the global error events.
+                          example: 100
+                        cursor:
+                          type: string
+                          readOnly: true
+                          description: |-
+                            The unique cursor identifier conducted from the IP address,
+                            timestamp, and event ID for a global error event.
+                          example: MTIyLjE5OS4xLjMxLDE1NjExNjc4NDAsMU15cm5MR3RzZ1dzNnBBTk1MMkJDOHRhME9Q
+                    data:
+                      type: array
+                      items:
+                        type: object
+                        description: The tunnel global error event.
+                        properties:
+                          time:
+                            type: string
+                            readOnly: true
+                            format: date-time
+                            description: The date and time when the error event was generated (UTC time, with milliseconds).
+                            example: '2018-06-13T16:07:07.222Z'
+                          eventId:
+                            type: string
+                            readOnly: true
+                            description: The unique event ID.
+                            example: 1Ip3mRXguys9u4mIwfQXj63KwqL
+                          type:
+                            type: string
+                            readOnly: true
+                            description: |
+                              The event Type:
+                              * SSEN - StrongSwan-based Error Notify Events
+                              * OTHER - others/future
+                            enum:
+                              - SSEN
+                              - OTHER
+                            default: SSEN
+                            example: SSEN
+                          code:
+                            type: string
+                            readOnly: true
+                            description: |
+                              The type-specific error codes:
+                              * LOCAL_AUTH_FAILED - creating local authentication data failed
+                              * PEER_AUTH_FAILED - peer authentication failed
+                              * PARSE_ERROR_HEADER - parsing IKE header failed
+                              * PARSE_ERROR_BODY - parsing IKE message failed
+                              * RETRANSMIT_SEND_TIMEOUT - IKE message retransmission timed out
+                              * HALF_OPEN_TIMEOUT - IKE SA timed out before it could be established
+                              * PROPOSAL_MISMATCH_IKE - received IKE SA proposals mismatch
+                              * PROPOSAL_MISMATCH_CHILD - received CHILD SA proposals mismatch
+                              * TS_MISMATCH - received traffic selectors mismatch
+                              * INSTALL_CHILD_SA_FAILED - installing IPsec SA failed
+                              * INSTALL_CHILD_POLICY_FAILED - installing IPsec policy failed
+                              * UNIQUE_REPLACE - replaced old IKE SA due to uniqueness policy
+                              * UNIQUE_KEEP - keep existing in favor of rejected new IKE SA due to uniqueness policy
+                              * VIP_FAILURE - virtual IP failure
+                              * AUTHORIZATION_FAILED - an authorization plugin prevented establishment of an IKE SA
+                              * RETRANSMIT_SEND - IKE message retransmission
+
+                              For additional information, see https://datatracker.ietf.org/doc/html/rfc7296.
+                            enum:
+                              - LOCAL_AUTH_FAILED
+                              - PEER_AUTH_FAILED
+                              - PARSE_ERROR_HEADER
+                              - PARSE_ERROR_BODY
+                              - RETRANSMIT_SEND_TIMEOUT
+                              - HALF_OPEN_TIMEOUT
+                              - PROPOSAL_MISMATCH_IKE
+                              - PROPOSAL_MISMATCH_CHILD
+                              - TS_MISMATCH
+                              - INSTALL_CHILD_SA_FAILED
+                              - INSTALL_CHILD_POLICY_FAILED
+                              - UNIQUE_REPLACE
+                              - UNIQUE_KEEP
+                              - VIP_FAILURE
+                              - AUTHORIZATION_FAILED
+                              - RETRANSMIT_SEND
+                            example: PEER_AUTH_FAILED
+                          reason:
+                            type: string
+                            readOnly: true
+                            description: The description of the error.
+                            example: peer authentication failed
+                          peerIp:
+                            type: string
+                            readOnly: true
+                            description: The optional peer IP (if available).
+                            example: 11.11.11.11
+                          peerPort:
+                            type: string
+                            readOnly: true
+                            description: The optional peer port (if available).
+                            example: '4500'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  securitySchemes:
+    oauthFlow:
+      type: oauth2
+      description: client credential flow
+      flows:
+        clientCredentials:
+          tokenUrl: https://api.umbrella.com/auth/v2/token
+          scopes:
+            deployments.tunnels:write: 'Write deployments tunnels'
+            deployments.tunnels:read: 'Read deployments tunnels'
+            deployments.datacenters:read: 'Read deployments datacenters'
+
+  headers:
+    Content-Type:
+      schema:
+        type: string
+      description: The MIME content type of the response body.
+      example: application/json
+    Date:
+      schema:
+        type: string
+        pattern: '^[0-90-90-90-9-0-90-9-0-90-9T0-90-9:0-90-9:0-90-9Z]+$'
+      description: The timestamp of the response.
+      example: '2023-03-14T18:34:25Z'
+      #'2023-03-14T18:34:25.412525046Z'
+
+  schemas:
+
+    networkCIDRs:
+      type: array
+      description: |-
+        Enter IPv4 ranges and CIDR addresses.
+        If `serviceType` is SIG, add all public and private address ranges used internally
+        by your organization. Overrides Umbrella's default behavior,
+        which allows traffic that is destined for RFC-1918 addresses to return through the tunnel.
+        If `serviceType` is Private Access, this field is required.
+        The 0.0.0.0/0 address range is not allowed.
+      items:
+        type: string
+        description: An IPv4 CIDR range.
+        example: 111.222.39.1/32
+      example:
+        - '123.111.222.25/24'
+        - '111.222.39.1/32'
+
+    ikeState:
+      type: string
+      readOnly: true
+      description: |
+        IKE SA State:
+          * CREATED
+          * CONNECTING
+          * ESTABLISHED
+          * PASSIVE
+          * REKEYING
+          * REKEYED
+          * DELETING
+          * DESTROYING
+      enum:
+        - CREATED
+        - CONNECTING
+        - ESTABLISHED
+        - PASSIVE
+        - REKEYING
+        - REKEYED
+        - DELETING
+        - DESTROYING
+      example: ESTABLISHED
+
+    ipsecState:
+      type: string
+      readOnly: true
+      description: |
+        IPSec/Child SA State:
+          * CREATED
+          * ROUTED
+          * INSTALLING
+          * INSTALLED
+          * UPDATING
+          * REKEYING
+          * REKEYED
+          * RETRYING
+          * DELETING
+          * DELETED
+          * DESTROYING
+      enum:
+        - CREATED
+        - ROUTED
+        - INSTALLING
+        - INSTALLED
+        - UPDATING
+        - REKEYING
+        - REKEYED
+        - RETRYING
+        - DELETING
+        - DELETED
+        - DESTROYING
+      example: INSTALLED
+
+    serviceType:
+      type: string
+      description: |-
+        The type of service to associate with the tunnel. The default value is `SIG`.
+      # Valid values are: SIG or Private Access.
+      enum:
+        - SIG
+        - Private Access
+      example: SIG
+
+    modifiedAt:
+      type: string
+      format: date-time
+      readOnly: true
+      example: '2018-06-13T16:07:07.222Z'
+      description: The data and time (timestamp) when the tunnel was updated.
+
+    # Client MetaData Auth Parameters
+    parameters:
+      type: object
+      properties:
+        id:
+          type: string
+          description: |-
+            The PSK ID. If an IP address is used as the ID, the IP address is the value of this field.
+          readOnly: true
+          example: admin@2561066-237952254-umbrella.com
+        modifiedAt:
+          $ref: '#/components/schemas/modifiedAt'
+
+    secretParameter:
+      type: string
+      example: 123Secret
+      description: |-
+        The secret of the PSK credentials. Ensure that you save the secret. The secret is not provided at any other time.
+
+    # Client MetaData Auth Parameters with Secret
+    parametersWithSecret:    
+      type: object
+      properties:
+        id:
+          type: string
+          description: |-
+            The PSK ID. If an IP address is used as the ID, the IP address is the value of this field.
+          readOnly: true
+          example: admin@2561066-237952254-umbrella.com
+        modifiedAt:
+          $ref: '#/components/schemas/modifiedAt'
+        secret:
+          $ref: '#/components/schemas/secretParameter'
+
+    # Client Metadata Authentication properties
+    authentication:
+      type: object
+      description: The authentication context of the client.
+      properties:
+        type:
+          type: string
+          enum:
+            - PSK
+          example: PSK
+          readOnly: true
+        parameters:
+          $ref: '#/components/schemas/parameters'
+
+    # Client Metadata Authentication properties with secret
+    authenticationWithSecret:
+      type: object
+      description: The authentication context of the client.
+      properties:
+        type:
+          type: string
+          enum:
+            - PSK
+          example: PSK
+          readOnly: true
+        parameters:
+          $ref: '#/components/schemas/parametersWithSecret'
+
+    deviceType:
+      type: string
+      description: The type of device where the tunnel originates. The default value is `other`.
+      enum:
+        - ASA
+        - FTD
+        - ISR
+        - Meraki MX
+        - Viptela cEdge
+        - Viptela vEdge
+        - other
+
+    # tunnel resource client
+    TunnelClientMetadata:
+      type: object
+      description: The tunnel client's configuration metadata.
+      properties:
+        deviceType:
+          $ref: '#/components/schemas/deviceType'
+        authentication:
+          $ref: '#/components/schemas/authentication'
+
+    # tunnel resource client with secret
+    TunnelClientMetadataWithSecret:
+      type: object
+      description: The tunnel client's configuration metadata including the client secret.
+      properties:
+        deviceType:
+          $ref: '#/components/schemas/deviceType'
+        authentication:
+          $ref: '#/components/schemas/authenticationWithSecret'
+
+    TunnelResourceObject:
+      type: object
+      description: The tunnel resource object.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: The tunnel resource ID, use this ID as reference for subsequent requests.
+          example: 1122321
+        uri:
+          type: string
+          description: Resource URI
+          readOnly: true
+          example: /tunnels/1122321
+        name:
+          type: string
+          description: |-
+            The display name of the tunnel. The tunnel name is required, cannot exceed 50 characters in length,
+            and can't have any special characters other than spaces and hyphens.
+          example: Site01Tunnel
+        siteOriginId:
+          type: integer
+          description: The site origin ID, which is associated with the tunnel.
+          example: 123456
+        client:
+          $ref: '#/components/schemas/TunnelClientMetadata'
+        transport:
+          type: object
+          properties:
+            protocol:
+              description: The tunnel transport protocol. The default is IPSec.
+              type: string
+              enum:
+                - IPSec
+              readOnly: true
+              example: IPSec
+        serviceType:
+          $ref: '#/components/schemas/serviceType'
+        networkCIDRs:
+          $ref: '#/components/schemas/networkCIDRs'
+        meta:
+          type: object
+          description: Metadata for the tunnel object, relating to service internals.
+          readOnly: true
+        createdAt:
+          type: string
+          description: The time when the tunnel was created.
+          format: date-time
+          readOnly: true
+          example: '2018-06-13T16:07:07.222Z'
+        modifiedAt:
+          $ref: '#/components/schemas/modifiedAt'
+      example:
+        id: 1122321
+        uri: /tunnels/1122321
+        name: Site01Tunnel
+        siteOriginId: 123456
+        client:
+          deviceType: ASA
+          authentication:
+            type: PSK
+            parameters:
+              id: admin@2561066-237952254-umbrella.com
+              modifiedAt: '2018-06-13T16:07:07.222Z'
+        transport:
+          protocol: IPSec
+        serviceType: SIG
+        networkCIDRs:
+          - 123.111.222.25/24
+          - 111.222.39.1/32
+        meta: {}
+        createdAt: '2018-06-13T16:07:07.222Z'
+        modifiedAt: '2018-06-13T16:07:07.222Z'
+
+    # Tunnel Resource with secret
+    TunnelResourceObjectWithSecret:
+      type: object
+      description: The properties of the tunnel resource object.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: The tunnel resource ID. Use this ID as a reference for subsequent requests.
+          example: 1122321
+        uri:
+          type: string
+          description: Resource URI
+          readOnly: true
+          example: /tunnels/1122321
+        name:
+          type: string
+          description: |-
+            Display the name of the tunnel. The tunnel name is required, cannot exceed 50 characters in length,
+            and can't have any special characters other than spaces and hyphens.
+          example: Site01Tunnel
+        siteOriginId:
+          type: integer
+          description: The Site origin ID that is associated with the tunnel.
+          example: 123456
+        client:
+          $ref: '#/components/schemas/TunnelClientMetadataWithSecret'
+        transport:
+          type: object
+          properties:
+            protocol:
+              description: The tunnel transport protocol. The default transport protocol is IPSec.
+              type: string
+              enum:
+                - IPSec
+              readOnly: true
+              example: IPSec
+        serviceType:
+          $ref: '#/components/schemas/serviceType'
+        networkCIDRs:
+          $ref: '#/components/schemas/networkCIDRs'
+        meta:
+          type: object
+          description: The metadata for the tunnel object, related to service internals.
+          readOnly: true
+        createdAt:
+          type: string
+          description: The date and time (timestamp) when the tunnel was created.
+          format: date-time
+          readOnly: true
+          example: '2018-06-13T16:07:07.222Z'
+        modifiedAt:
+          $ref: '#/components/schemas/modifiedAt'
+      example:
+        id: 1122321
+        uri: /tunnels/1122321
+        name: Site01Tunnel
+        siteOriginId: 123456
+        client:
+          deviceType: ASA
+          authentication:
+            type: PSK
+            parameters:
+              id: admin@2561066-237952254-umbrella.com
+              modifiedAt: '2018-06-13T16:07:07.222Z'
+              secret: secretkey123
+        transport:
+          protocol: IPSec
+        serviceType: SIG
+        networkCIDRs:
+          - 123.111.222.25/24
+          - 111.222.39.1/32
+        meta: {}
+        createdAt: '2018-06-13T16:07:07.222Z'
+        modifiedAt: '2018-06-13T16:07:07.222Z'
+
+    # Tunnel Resource with State information in meta field
+    TunnelResourceObjectWithState:
+      type: object
+      description: |-
+        Get the information about the tunnel in the organization.
+        To include the tunnel state information in the response, set the `includeState` request query parameter to `true`.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: The tunnel resource ID. Use this ID as a reference for subsequent requests.
+          example: 1122321
+        uri:
+          type: string
+          description: Resource URI
+          readOnly: true
+          example: /organization/2345432/tunnels/1122321
+        name:
+          type: string
+          description: |-
+            The display name of the tunnel. The tunnel name is required, cannot exceed 50 characters in length,
+            and cannot have any special characters other than spaces and hyphens.
+          example: Site01Tunnel
+        siteOriginId:
+          type: integer
+          description: Site Origin ID to associate with the tunnel
+          example: 123456
+        client:
+          $ref: '#/components/schemas/TunnelClientMetadata'
+        transport:
+          type: object
+          properties:
+            protocol:
+              description: The tunnel transport protocol. The default is IPSec.
+              type: string
+              enum:
+                - IPSec
+              readOnly: true
+              example: IPSec
+        serviceType:
+          $ref: '#/components/schemas/serviceType'
+        networkCIDRs:
+          $ref: '#/components/schemas/networkCIDRs'
+        meta:
+          type: object
+          description: The metadata for the tunnel object that relates to service internals.
+          readOnly: true
+          properties:
+            state:
+              title: tunnelState
+              description: The tunnel state information.
+              properties:
+                tunnelId:
+                  type: string
+                  readOnly: true
+                  description: The tunnel ID.
+                  example: '163367136'
+                status:
+                  type: string
+                  readOnly: true
+                  description: |
+                    The high-level tunnel status:
+                    * up - the tunnel is active
+                    * down - the tunnel is inactive
+                    * failed - the tunnel is in a failed state
+                    * unknown - the status is unknown and pending updated information
+                  enum:
+                    - UP
+                    - DOWN
+                    - FAILED
+                    - UNKNOWN
+                  example: UP
+                dc:
+                  type: string
+                  readOnly: true
+                  description: The domain name that is associate with the data center.
+                  example: chi1.edc
+                dcName:
+                  type: string
+                  readOnly: true
+                  description: The name of the data center.
+                  example: Equinix Chicago
+                dcDesc:
+                  type: string
+                  readOnly: true
+                  description: The city and country or region of the data center.
+                  example: 'Chicago, Illinois - US'
+                ikeState:
+                  $ref: '#/components/schemas/ikeState'
+                ipsecState:
+                  $ref: '#/components/schemas/ipsecState'
+                peerId:
+                  type: string
+                  readOnly: true
+                  description: The remote peer IKE ID.
+                  example: unique-value@1234567-234567812-umbrella.com
+                peerIp:
+                  type: string
+                  readOnly: true
+                  description: The remote peer IP.
+                  example: 198.18.195.1
+                localIp:
+                  type: string
+                  readOnly: true
+                  description: The public IP address, which is assigned to an endpoint device (ISR, Viptela).
+                  example: 198.25.43.19
+                peerPort:
+                  type: string
+                  readOnly: true
+                  description: The port number of the remote peer.
+                  example: '4500'
+                ike:
+                  title: tunnelIKEState
+                  description: The tunnel IKE session state.
+                  properties:
+                    age:
+                      type: string
+                      readOnly: true
+                      description: The age of the established state in seconds.
+                      example: '6194'
+                    dhGroup:
+                      type: string
+                      readOnly: true
+                      description: The IKE Diffie-Hellman group.
+                      example: MODP_2048
+                    prfAlgo:
+                      type: string
+                      readOnly: true
+                      description: The IKE pseudo random function.
+                      example: PRF_HMAC_SHA1
+                    encAlgo:
+                      type: string
+                      readOnly: true
+                      description: The IKE encryption algorithm.
+                      example: AES_CBC
+                    initiatorSpi:
+                      type: string
+                      readOnly: true
+                      description: The hex encoded initiator SPI or cookie.
+                      example: cf065c564a511834
+                    responderSpi:
+                      type: string
+                      readOnly: true
+                      description: The hex encoded responder SPI or cookie.
+                      example: a3cd5c8533c80069
+                ipsec:
+                  title: tunnelIPSecState
+                  description: The tunnel IPsec session state.
+                  properties:
+                    age:
+                      type: string
+                      readOnly: true
+                      description: The age of the installed state in seconds.
+                      example: '6194'
+                    integrityAlgo:
+                      type: string
+                      readOnly: true
+                      description: The ESP or AH integrity algorithm name.
+                      example: HMAC_SHA1_96
+                    encAlgo:
+                      type: string
+                      readOnly: true
+                      description: The ESP encryption algorithm name.
+                      example: 'NULL'
+                    encKeySize:
+                      type: string
+                      readOnly: true
+                      description: The ESP encryption key size (optional field; not available with NULL encryption.
+                      example: '128'
+                    spiIn:
+                      type: string
+                      readOnly: true
+                      description: The hex encoded inbound SPI.
+                      example: c6ef7503
+                    spiOut:
+                      type: string
+                      readOnly: true
+                      description: The hex encoded outbound SPI.
+                      example: '00010102'
+                    peerSelectors:
+                      type: array
+                      readOnly: true
+                      description: The peer traffic selectors.
+                      items:
+                        type: string
+                        description: The selector expression.
+                        example: 0.0.0.0/0
+                data:
+                  title: tunnelDataState
+                  description: The state of the tunnel's data plane.
+                  properties:
+                    packetsIn:
+                      type: string
+                      readOnly: true
+                      description: The number of processed input packets (tunnel ingress).
+                      example: '10'
+                    bytesIn:
+                      type: string
+                      readOnly: true
+                      description: The number of processed input bytes (tunnel ingress).
+                      example: '1000'
+                    idleTimeIn:
+                      type: string
+                      readOnly: true
+                      description: The idle time (seconds since last inbound packet).
+                      example: '100'
+                    packetsOut:
+                      type: string
+                      readOnly: true
+                      description: The number of processed output packets (tunnel egress).
+                      example: '10'
+                    bytesOut:
+                      type: string
+                      readOnly: true
+                      description: The number of processed output bytes (tunnel egress).
+                      example: '1000'
+                    idleTimeOut:
+                      type: string
+                      readOnly: true
+                      description: The idle time (seconds since last outbound packet).
+                      example: '100'
+                    initialized:
+                      type: string
+                      readOnly: true
+                      description: The time when packet and byte counters were initialized to 0.
+                      example: '2023-10-19T22:15:12.765623734Z'
+                modifiedAt:
+                  type: string
+                  readOnly: true
+                  format: date-time
+                  description: The date and time (UTC time with milliseconds) when the tunnel's state was last updated.
+                  example: '2018-06-13T16:07:07.222Z'
+        createdAt:
+          type: string
+          format: date-time
+          description: The date and n time (UTC time with milliseconds) when the tunnel was created.
+          readOnly: true
+          example: '2018-06-13T16:07:07.222Z'
+        modifiedAt:
+          $ref: '#/components/schemas/modifiedAt'
+
+    # Tunnel State information
+    TunnelStateInformation:
+      type: object
+      description: Tunnel State Information
+      properties:
+        tunnelId:
+          type: string
+          readOnly: true
+          description: The tunnel ID
+          example: '163367136'
+        status:
+          type: string
+          readOnly: true
+          description: |-
+            The high-level tunnel status:
+
+            * up - the tunnel is active
+            * down - the tunnel is inactive
+            * failed - the tunnel is in a failed state
+            * unknown - the status is unknown and pending updated information
+          enum:
+            - UP
+            - DOWN
+            - FAILED
+            - UNKNOWN
+          example: UP
+        dc:
+          type: string
+          readOnly: true
+          description: The domain name of the data center.
+          example: chi1.edc
+        dcName:
+          type: string
+          readOnly: true
+          description: The name of the data center.
+          example: Equinix Chicago
+        dcDesc:
+          type: string
+          readOnly: true
+          description: The city and country of region of the data center.
+          example: 'Chicago, Illinois - US'
+        ikeState:
+          $ref: '#/components/schemas/ikeState'
+        ipsecState:
+          $ref: '#/components/schemas/ipsecState'
+        peerId:
+          type: string
+          readOnly: true
+          description: The remote peer IKE ID.
+          example: unique-value@1234567-234567812-umbrella.com
+        peerIp:
+          type: string
+          readOnly: true
+          description: The remote peer IP.
+          example: 198.18.195.1
+        localIp:
+          type: string
+          readOnly: true
+          description: |-
+            The public IP address, which is assigned to an endpoint device (ISR, Viptela).
+          example: 198.25.43.19
+        peerPort:
+          type: string
+          readOnly: true
+          description: The port of the remote peer.
+          example: '4500'
+        ike:
+          title: tunnelIKEState
+          type: object
+          description: The tunnel IKE session state.
+          properties:
+            age:
+              type: string
+              readOnly: true
+              description: The age of the established state in seconds.
+              example: '6194'
+            dhGroup:
+              type: string
+              readOnly: true
+              description: The IKE Diffie-Hellman group.
+              example: MODP_2048
+            prfAlgo:
+              type: string
+              readOnly: true
+              description: The IKE pseudo random function.
+              example: PRF_HMAC_SHA1
+            encAlgo:
+              type: string
+              readOnly: true
+              description: The IKE encryption algorithm.
+              example: AES_CBC
+            initiatorSpi:
+              type: string
+              readOnly: true
+              description: The hex encoded initiator SPI or cookie.
+              example: cf065c564a511834
+            responderSpi:
+              type: string
+              readOnly: true
+              description: The hex encoded responder SPI or cookie.
+              example: a3cd5c8533c80069
+        ipsec:
+          title: tunnelIPSecState
+          type: object
+          description: The tunnel IPSec session state.
+          properties:
+            age:
+              type: string
+              readOnly: true
+              description: The age of the installed state in seconds.
+              example: '6194'
+            integrityAlgo:
+              type: string
+              readOnly: true
+              description: The ESP or AH integrity algorithm name.
+              example: HMAC_SHA1_96
+            encAlgo:
+              type: string
+              readOnly: true
+              description: The ESP encryption algorithm name.
+              example: 'NULL'
+            encKeySize:
+              type: string
+              readOnly: true
+              description: The ESP encryption key size (optional field, not available with NULL encryption).
+              example: '128'
+            spiIn:
+              type: string
+              readOnly: true
+              description: The hex encoded inbound SPI.
+              example: "c6ef7503"
+            spiOut:
+              type: string
+              readOnly: true
+              description: The hex encoded outbound SPI.
+              example: '00010102'
+            peerSelectors:
+              type: array
+              readOnly: true
+              description: The peer traffic selectors.
+              items:
+                type: string
+                description: The selector expression.
+                example: "0.0.0.0/0"
+        data:
+          title: tunnelDataState
+          description: The state of the network tunnel data plane.
+          type: object
+          properties:
+            packetsIn:
+              type: string
+              readOnly: true
+              description: The number of processed input packets (tunnel ingress).
+              example: '10'
+            bytesIn:
+              type: string
+              readOnly: true
+              description: The number of processed input bytes (tunnel ingress).
+              example: '1000'
+            idleTimeIn:
+              type: string
+              readOnly: true
+              description: The idle time (seconds since last inbound packet).
+              example: '100'
+            packetsOut:
+              type: string
+              readOnly: true
+              description: The number of processed output packets (tunnel egress).
+              example: '10'
+            bytesOut:
+              type: string
+              readOnly: true
+              description: The number of processed output bytes (tunnel egress).
+              example: '1000'
+            idleTimeOut:
+              type: string
+              readOnly: true
+              description: The idle time (seconds since last outbound packet).
+              example: '100'
+            initialized:
+              type: string
+              readOnly: true
+              description: The time when the packet and byte counters were initialized to 0.
+              example: '2023-10-19T22:15:12.765623734Z'
+        modifiedAt:
+          type: string
+          readOnly: true
+          format: date-time
+          description: The date and time (UTC time with milliseconds) when the tunnel's state was last updated.
+          example: '2018-06-13T16:07:07.222Z'
+      example:
+        tunnelId: '163367136'
+        status: UP
+        dc: chi1.edc
+        dcName: Equinix Chicago
+        dcDesc: 'Chicago, Illinois - US'
+        ikeState: ESTABLISHED
+        ipsecState: INSTALLED
+        peerId: unique-value@1234567-234567812-umbrella.com
+        peerIp: 198.18.195.1
+        localIp: 198.25.43.19
+        peerPort: '4500'
+        ike:
+          age: '6194'
+          dhGroup: MODP_2048
+          prfAlgo: PRF_HMAC_SHA1
+          encAlgo: AES_CBC
+          initiatorSpi: cf065c564a511834
+          responderSpi: a3cd5c8533c80069
+        ipsec:
+          age: '6194'
+          integrityAlgo: HMAC_SHA1_96
+          encAlgo: 'NULL'
+          encKeySize: '128'
+          spiIn: "c6ef7503"
+          spiOut: '00010102'
+          peerSelectors:
+            - "0.0.0.0/0"
+        data:
+          packetsIn: '10'
+          bytesIn: '1000'
+          idleTimeIn: '100'
+          packetsOut: '10'
+          bytesOut: '1000'
+          idleTimeOut: '100'
+          initialized: '2023-10-19T22:15:12.765623734Z'
+        modifiedAt: '2018-06-13T16:07:07.222Z'
+
+  responses:
+
+    NotFound:
+      description: Not Found
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            minProperties: 3
+            required: [statusCode, error, txId]
+            properties:
+              statusCode:
+                type: integer
+                example: 404
+                description: HTTP status code
+              error:
+                type: string
+                example: Not Found
+                description: A brief description of the error
+              txId:
+                type: string
+                example: 86e189a6-0124-47d3-a32c-25ff3f07deaf
+                description: a unique hex number that can be used for debugging
+
+    Unauthorized:
+      description: Unauthorized
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            minProperties: 3
+            required: [statusCode, error, txId]
+            properties:
+              statusCode:
+                type: integer
+                example: 401
+                description: HTTP status code
+              error:
+                type: string
+                example: Unauthorized
+                description: A brief description of the error
+              txId:
+                type: string
+                example: 86e189a6-0124-47d3-a32c-25ff3f07deaf
+                description: a unique hex number that can be used for debugging
+
+    Forbidden:
+      description: Forbidden
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            minProperties: 1
+            required: [message]
+            properties:
+              statusCode:
+                type: integer
+                example: 403
+                description: HTTP status code
+              message:
+                type: string
+                example: |
+                  SIG is not enabled, please check with Cisco Support.
+                  You have reached the maximum number of network tunnels for this organization.
+                  To increase the limit, contact your administrator.
+                description: Error message explaining the reason for failure
+
+    BadRequest:
+      description: Bad Request
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            minProperties: 3
+            required: [statusCode, error, txId]
+            properties:
+              statusCode:
+                type: integer
+                example: 400
+                description: HTTP status code
+              error:
+                type: string
+                example: Validation Error
+                description: a brief description of the error
+              txId:
+                type: string
+                example: 86e189a6-0124-47d3-a32c-25ff3f07deaf
+                description: a unique hex number that can be used for debugging
+              validationErrors:
+                type: object
+                properties:
+                  someProperty:
+                    type: string
+                    example: must not be empty
+                    description: the name of the property failing validation.
+
+    Conflict:
+      description: Conflict
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            description: |-
+              Conflict - Unable to delete requested tunnel as it is attached
+              to a policy and detachPolicies was not specified in the request.
+              Check the response body for policies which this tunnel is attached to.
+            properties:
+              error:
+                type: string
+                example: |-
+                  Umbrella cannot delete this tunnel as it is currently in use.
+                  To delete this tunnel, remove it from all policies and deployments.
+              firewallRules:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: number
+                      example: 123
+                    name:
+                      type: string
+                      example: Example policy name
+              dnsPolicies:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: number
+                      example: 456
+                    name:
+                      type: string
+                      example: Another example policy name
+              internalNetworks:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: number
+                      example: 789
+                    label:
+                      type: string
+                      example: Yet another example policy name
+
+    ServerError:
+      description: Internal Server Error
+      headers:
+        Content-Type:
+          $ref: '#/components/headers/Content-Type'
+        Date:
+          $ref: '#/components/headers/Date'
+      content:
+        application/json:
+          schema:
+            type: object
+            minProperties: 3
+            required: [statusCode, error, txId]
+            properties:
+              statusCode:
+                type: integer
+                example: 500
+                description: HTTP status code
+              error:
+                type: string
+                example: Internal Server Error
+                description: a brief description of the error
+              txId:
+                type: string
+                example: 86e189a6-0124-47d3-a32c-25ff3f07deaf
+                description: a unique hex number that can be used for debugging
