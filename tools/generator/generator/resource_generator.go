@@ -135,7 +135,10 @@ func (rg *ResourceGenerator) generateSchema(endpoints []parser.Endpoint) *Resour
 	processedFields := make(map[string]bool)
 	processedFields["id"] = true
 
-	// First pass: Extract from request bodies (for input fields)
+	// Enhanced schema extraction: Analyze POST and PUT operations first
+	rg.extractSchemaFromCRUDOperations(endpoints, schema, processedFields)
+
+	// Fallback: Extract from request bodies (for input fields)
 	hasCreateEndpoint := false
 	for _, endpoint := range endpoints {
 		if endpoint.CRUDType == "create" && endpoint.Operation.RequestBody != nil {
@@ -144,7 +147,7 @@ func (rg *ResourceGenerator) generateSchema(endpoints []parser.Endpoint) *Resour
 		}
 	}
 
-	// Second pass: Extract from successful responses (for computed fields and missing input fields)
+	// Extract from successful responses (for computed fields and missing input fields)
 	for _, endpoint := range endpoints {
 		for statusCode, response := range endpoint.Operation.Responses {
 			isSuccessResponse := statusCode == "200" || statusCode == "201" || statusCode == "202"
@@ -157,6 +160,35 @@ func (rg *ResourceGenerator) generateSchema(endpoints []parser.Endpoint) *Resour
 	}
 
 	return schema
+}
+
+// extractSchemaFromCRUDOperations analyzes POST and PUT operations to extract complete resource schemas
+func (rg *ResourceGenerator) extractSchemaFromCRUDOperations(endpoints []parser.Endpoint, schema *ResourceSchema, processedFields map[string]bool) {
+	// Extract schema from CRUD operations
+
+	// First, analyze POST operations (create) for required fields and input schema
+	for _, endpoint := range endpoints {
+		// Check endpoint for request body
+		if endpoint.Method == "POST" && endpoint.Operation.RequestBody != nil {
+			// Process POST endpoint request body
+			rg.extractSchemaFromRequestBody(endpoint.Operation.RequestBody, schema, processedFields, true)
+		}
+	}
+
+	// Then, analyze PUT operations (update) for additional optional fields
+	for _, endpoint := range endpoints {
+		if endpoint.Method == "PUT" && endpoint.Operation.RequestBody != nil {
+			// Process PUT endpoint request body
+			rg.extractSchemaFromRequestBody(endpoint.Operation.RequestBody, schema, processedFields, true)
+		}
+	}
+
+	// Finally, analyze PATCH operations for partial updates
+	for _, endpoint := range endpoints {
+		if endpoint.Method == "PATCH" && endpoint.Operation.RequestBody != nil {
+			rg.extractSchemaFromRequestBody(endpoint.Operation.RequestBody, schema, processedFields, true)
+		}
+	}
 }
 
 // extractSchemaFromRequestBody extracts schema attributes from request body
@@ -179,9 +211,16 @@ func (rg *ResourceGenerator) extractSchemaFromResponse(response *parser.Response
 
 // extractSchemaFromOpenAPISchema extracts attributes from an OpenAPI schema
 func (rg *ResourceGenerator) extractSchemaFromOpenAPISchema(apiSchema *parser.Schema, schema *ResourceSchema, processedFields map[string]bool, isInput bool) {
+	rg.extractSchemaFromOpenAPISchemaWithPrefix(apiSchema, schema, processedFields, isInput, "")
+}
+
+// extractSchemaFromOpenAPISchemaWithPrefix extracts attributes from an OpenAPI schema with field prefix support
+func (rg *ResourceGenerator) extractSchemaFromOpenAPISchemaWithPrefix(apiSchema *parser.Schema, schema *ResourceSchema, processedFields map[string]bool, isInput bool, prefix string) {
 	if apiSchema == nil {
 		return
 	}
+
+	// Process schema properties
 
 	// Handle schema references - this is the key issue we need to fix
 	if apiSchema.Ref != "" {
@@ -194,15 +233,29 @@ func (rg *ResourceGenerator) extractSchemaFromOpenAPISchema(apiSchema *parser.Sc
 	// Handle direct properties
 	if apiSchema.Properties != nil {
 		for propName, propSchema := range apiSchema.Properties {
+			// Create flattened field name
+			fieldName := propName
+			if prefix != "" {
+				fieldName = prefix + "_" + propName
+			}
+
 			// Skip if already processed
-			if processedFields[propName] {
+			if processedFields[fieldName] {
 				continue
 			}
 
-			attr := rg.createSchemaAttribute(propName, propSchema, apiSchema.Required, isInput)
-			if attr != nil {
-				schema.Attributes = append(schema.Attributes, *attr)
-				processedFields[propName] = true
+			// Handle nested objects by flattening them
+			if propSchema.Type == "object" && propSchema.Properties != nil {
+				// Recursively process nested object properties
+				rg.extractSchemaFromOpenAPISchemaWithPrefix(propSchema, schema, processedFields, isInput, fieldName)
+			} else {
+				// Create attribute for primitive types
+				attr := rg.createSchemaAttributeWithPrefix(fieldName, propName, propSchema, apiSchema.Required, isInput)
+				if attr != nil {
+					schema.Attributes = append(schema.Attributes, *attr)
+					processedFields[fieldName] = true
+				} else {
+				}
 			}
 		}
 	} else {
@@ -218,24 +271,24 @@ func (rg *ResourceGenerator) extractSchemaFromOpenAPISchema(apiSchema *parser.Sc
 	if apiSchema.Type == "object" && len(apiSchema.Properties) > 0 {
 		// Look for common data wrapper patterns
 		if dataSchema, exists := apiSchema.Properties["data"]; exists {
-			rg.extractSchemaFromOpenAPISchema(dataSchema, schema, processedFields, isInput)
+			rg.extractSchemaFromOpenAPISchemaWithPrefix(dataSchema, schema, processedFields, isInput, prefix)
 		}
 	}
 
 	// Handle array items
 	if apiSchema.Type == "array" && apiSchema.Items != nil {
-		rg.extractSchemaFromOpenAPISchema(apiSchema.Items, schema, processedFields, isInput)
+		rg.extractSchemaFromOpenAPISchemaWithPrefix(apiSchema.Items, schema, processedFields, isInput, prefix)
 	}
 
 	// Handle allOf, oneOf, anyOf
 	for _, subSchema := range apiSchema.AllOf {
-		rg.extractSchemaFromOpenAPISchema(subSchema, schema, processedFields, isInput)
+		rg.extractSchemaFromOpenAPISchemaWithPrefix(subSchema, schema, processedFields, isInput, prefix)
 	}
 	for _, subSchema := range apiSchema.OneOf {
-		rg.extractSchemaFromOpenAPISchema(subSchema, schema, processedFields, isInput)
+		rg.extractSchemaFromOpenAPISchemaWithPrefix(subSchema, schema, processedFields, isInput, prefix)
 	}
 	for _, subSchema := range apiSchema.AnyOf {
-		rg.extractSchemaFromOpenAPISchema(subSchema, schema, processedFields, isInput)
+		rg.extractSchemaFromOpenAPISchemaWithPrefix(subSchema, schema, processedFields, isInput, prefix)
 	}
 }
 
@@ -510,6 +563,68 @@ func (rg *ResourceGenerator) createSchemaAttribute(propName string, propSchema *
 	return attr
 }
 
+// createSchemaAttributeWithPrefix creates a schema attribute with support for flattened field names
+func (rg *ResourceGenerator) createSchemaAttributeWithPrefix(fieldName, originalName string, propSchema *parser.Schema, requiredFields []string, isInput bool) *SchemaAttribute {
+	if propSchema == nil {
+		return nil
+	}
+
+	// Use fieldName if provided, otherwise use originalName
+	name := fieldName
+	if name == "" {
+		name = originalName
+	}
+
+	// Skip certain system fields that shouldn't be in Terraform schema
+	skipFields := map[string]bool{
+		"status":     true, // API status responses
+		"meta":       true, // Pagination metadata (handle separately if needed)
+		"txId":       true, // Transaction IDs
+		"statusCode": true, // HTTP status codes
+		"error":      true, // Error fields
+	}
+
+	if skipFields[originalName] {
+		return nil
+	}
+
+	attr := &SchemaAttribute{
+		Name:        rg.toTerraformName(name),
+		Type:        rg.templateEngine.schemaToTerraformType(propSchema),
+		GoType:      rg.templateEngine.schemaToGoType(propSchema),
+		Description: rg.cleanDescription(propSchema.Description),
+	}
+
+	// Determine if required/optional/computed (check against original name in OpenAPI spec)
+	if isInput {
+		attr.Required = rg.isRequired(originalName, requiredFields)
+		attr.Optional = !attr.Required
+	} else {
+		attr.Computed = true
+	}
+
+	// Handle special cases based on original field name
+	switch originalName {
+	case "id":
+		// ID is always computed
+		attr.Computed = true
+		attr.Required = false
+		attr.Optional = false
+	case "organizationId", "organization_id":
+		// Organization ID is typically computed
+		attr.Computed = true
+		attr.Required = false
+		attr.Optional = false
+	case "createdAt", "created_at", "modifiedAt", "modified_at":
+		// Timestamps are always computed
+		attr.Computed = true
+		attr.Required = false
+		attr.Optional = false
+	}
+
+	return attr
+}
+
 // cleanDescription cleans up description text for Terraform schema
 func (rg *ResourceGenerator) cleanDescription(desc string) string {
 	if desc == "" {
@@ -551,6 +666,19 @@ func (rg *ResourceGenerator) isRequired(propName string, required []string) bool
 		}
 	}
 	return false
+}
+
+// toTerraformName converts a field name to Terraform-friendly snake_case format
+func (rg *ResourceGenerator) toTerraformName(name string) string {
+	// Convert camelCase to snake_case
+	result := ""
+	for i, r := range name {
+		if i > 0 && r >= 'A' && r <= 'Z' {
+			result += "_"
+		}
+		result += strings.ToLower(string(r))
+	}
+	return result
 }
 
 // registerResourceTemplate registers the embedded resource template

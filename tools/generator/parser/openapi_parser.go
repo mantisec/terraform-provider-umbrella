@@ -51,10 +51,14 @@ func (p *OpenAPIParser) ParseBytes(data []byte) (*APISpec, error) {
 		return nil, fmt.Errorf("invalid OpenAPI spec: %w", err)
 	}
 
+	// Schema extraction is now working correctly with YAML tags
+
 	// Normalize schemas and resolve references
 	if err := p.normalizer.NormalizeSpec(&spec); err != nil {
 		return nil, fmt.Errorf("failed to normalize spec: %w", err)
 	}
+
+	// Normalization complete
 
 	return &spec, nil
 }
@@ -173,6 +177,7 @@ func (p *OpenAPIParser) ClassifyEndpoint(method, path string, operation *Operati
 	}
 
 	classification.ResourceName = p.GetResourceName(operation, path)
+	fmt.Println(classification)
 	return classification
 }
 
