@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/mantisec/terraform-provider-umbrella/tools/generator/config"
 	"github.com/mantisec/terraform-provider-umbrella/tools/generator/parser"
@@ -59,10 +60,10 @@ func (g *Generator) GenerateFromSpec(spec *parser.APISpec, outputDir string) err
 		}
 	}
 
-	// Generate client methods - TEMPORARILY DISABLED DUE TO SYNTAX ISSUES
-	// if err := g.generateClientMethods(endpoints, outputDir); err != nil {
-	// 	return fmt.Errorf("failed to generate client methods: %w", err)
-	// }
+	// Generate client methods using the new v2 generator
+	if err := g.generateClientMethodsV2(resourceGroups, outputDir); err != nil {
+		return fmt.Errorf("failed to generate client methods: %w", err)
+	}
 
 	// Generate documentation
 	if err := g.generateDocumentation(resourceGroups, outputDir); err != nil {
@@ -235,4 +236,79 @@ func (g *Generator) ValidateGeneration(outputDir string) error {
 	// This would run go build or similar to validate the generated code
 	// For now, we'll skip this validation step
 	return nil
+}
+
+// generateClientMethodsV2 generates client methods using the new v2 generator
+func (g *Generator) generateClientMethodsV2(resourceGroups map[string][]parser.Endpoint, outputDir string) error {
+	// Convert old endpoint groups to new format
+	endpointGroups := g.convertToEndpointGroups(resourceGroups)
+
+	clientMethodGen := NewClientMethodGeneratorV2(g.templateEngine)
+
+	var allMethods []ClientMethod
+	for _, group := range endpointGroups {
+		methods := clientMethodGen.GenerateClientMethodsForGroup(group)
+		allMethods = append(allMethods, methods...)
+	}
+
+	// Generate the client methods file
+	var methodsCode strings.Builder
+	methodsCode.WriteString("package provider\n\n")
+	methodsCode.WriteString("import (\n")
+	methodsCode.WriteString("\t\"bytes\"\n")
+	methodsCode.WriteString("\t\"context\"\n")
+	methodsCode.WriteString("\t\"encoding/json\"\n")
+	methodsCode.WriteString("\t\"fmt\"\n")
+	methodsCode.WriteString("\t\"io\"\n")
+	methodsCode.WriteString("\t\"net/http\"\n")
+	methodsCode.WriteString("\t\"net/url\"\n")
+	methodsCode.WriteString("\t\"strings\"\n")
+	methodsCode.WriteString(")\n\n")
+
+	for _, method := range allMethods {
+		methodCode := clientMethodGen.GenerateClientMethodCode(method)
+		methodsCode.WriteString(methodCode)
+	}
+
+	// Write to file
+	outputPath := filepath.Join(outputDir, "generated_client_methods.go")
+	if err := os.WriteFile(outputPath, []byte(methodsCode.String()), 0644); err != nil {
+		return fmt.Errorf("failed to write client methods file: %w", err)
+	}
+
+	return nil
+}
+
+// convertToEndpointGroups converts old endpoint groups to new EndpointGroup format
+func (g *Generator) convertToEndpointGroups(resourceGroups map[string][]parser.Endpoint) map[string]parser.EndpointGroup {
+	endpointGroups := make(map[string]parser.EndpointGroup)
+
+	for resourceName, endpoints := range resourceGroups {
+		group := parser.EndpointGroup{
+			CanonicalName: resourceName,
+			ResourceName:  resourceName,
+			Endpoints:     endpoints,
+			CRUDOps:       make(map[string]parser.Endpoint),
+			HasResource:   false,
+			HasDataSource: false,
+		}
+
+		// Map CRUD operations and determine capabilities
+		for _, endpoint := range endpoints {
+			if endpoint.CRUDType != "" {
+				group.CRUDOps[endpoint.CRUDType] = endpoint
+			}
+
+			if endpoint.ResourceType == "resource" {
+				group.HasResource = true
+			}
+			if endpoint.ResourceType == "data_source" {
+				group.HasDataSource = true
+			}
+		}
+
+		endpointGroups[resourceName] = group
+	}
+
+	return endpointGroups
 }

@@ -461,8 +461,16 @@ func Test{{pascalCase .ResourceName}}{{if eq .ResourceType "resource"}}Resource{
 {{if eq .TestType "unit"}}
 func {{.Name}}(t *testing.T) {
 	// {{.Description}}
-	// TODO: Implement unit test
-	t.Skip("Unit test not implemented yet")
+	// Test basic functionality
+	assert.NotNil(t, r, "Resource should not be nil")
+
+	// Test schema validation
+	schemaReq := resource.SchemaRequest{}
+	schemaResp := &resource.SchemaResponse{}
+	r.Schema(context.Background(), schemaReq, schemaResp)
+
+	assert.False(t, schemaResp.Diagnostics.HasError(), "Schema should not have errors")
+	assert.NotNil(t, schemaResp.Schema, "Schema should not be nil")
 }
 {{end}}
 {{end}}
@@ -563,12 +571,12 @@ func {{.Name}}(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAcc{{pascalCase $.ResourceName}}Config_{{.Name}}_valid({{.}}),
+				Config: testAcc{{pascalCase $.ResourceName}}Config_{{$.Name}}_valid({{.}}),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					{{if eq $.ResourceType "resource"}}
-					resource.TestCheckResourceAttr("{{$.TypeName}}.test", "{{.Name}}", {{.}}),
+					resource.TestCheckResourceAttr("{{$.TypeName}}.test", "{{$.Name}}", {{.}}),
 					{{else}}
-					resource.TestCheckDataSourceAttr("{{$.TypeName}}.test", "{{.Name}}", {{.}}),
+					resource.TestCheckDataSourceAttr("{{$.TypeName}}.test", "{{$.Name}}", {{.}}),
 					{{end}}
 				),
 			},
@@ -585,7 +593,7 @@ func {{.Name}}(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config:      testAcc{{pascalCase $.ResourceName}}Config_{{.Name}}_invalid({{.}}),
+				Config:      testAcc{{pascalCase $.ResourceName}}Config_{{$.Name}}_invalid({{.}}),
 				ExpectError: regexp.MustCompile(".*"),
 			},
 		},

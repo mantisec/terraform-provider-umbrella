@@ -73,8 +73,32 @@ func (r *{{.StructName}}) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	// TODO: Implement create logic using {{.CreateEndpoint.Method}} {{.CreateEndpoint.Path}}
-	
+	// Create the resource using the API
+	createReq := map[string]interface{}{}
+	{{- range .Schema.Attributes}}
+	{{- if not .Computed}}
+	if !plan.{{pascalCase .Name}}.IsNull() {
+		createReq["{{.Name}}"] = plan.{{pascalCase .Name}}.ValueString()
+	}
+	{{- end}}
+	{{- end}}
+
+	url := r.client.baseURL + "{{.CreateEndpoint.Path}}"
+	resp, err := r.client.makeRequest(ctx, "{{.CreateEndpoint.Method}}", url, createReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create {{.ResourceName}}: %s", err))
+		return
+	}
+
+	// Extract the created resource data
+	if respData, ok := resp["data"].(map[string]interface{}); ok {
+		{{- range .Schema.Attributes}}
+		if val, exists := respData["{{.Name}}"]; exists && val != nil {
+			plan.{{pascalCase .Name}} = types.StringValue(fmt.Sprintf("%v", val))
+		}
+		{{- end}}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 {{- end}}
@@ -88,8 +112,31 @@ func (r *{{.StructName}}) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	// TODO: Implement read logic using {{.ReadEndpoint.Method}} {{.ReadEndpoint.Path}}
-	
+	// Read the resource from the API
+	{{- if .ReadEndpoint.PathParams}}
+	url := r.client.baseURL + "{{.ReadEndpoint.Path}}"
+	{{- range .ReadEndpoint.PathParams}}
+	url = strings.ReplaceAll(url, "{{ printf "{%s}" .Name }}", state.{{pascalCase .Name}}.ValueString())
+	{{- end}}
+	{{- else}}
+	url := r.client.baseURL + "{{.ReadEndpoint.Path}}"
+	{{- end}}
+
+	resp, err := r.client.makeRequest(ctx, "{{.ReadEndpoint.Method}}", url, nil)
+	if err != nil {
+		resp.Diagnostics.AddError("Read Error", fmt.Sprintf("Unable to read {{.ResourceName}}: %s", err))
+		return
+	}
+
+	// Update state with the retrieved data
+	if respData, ok := resp["data"].(map[string]interface{}); ok {
+		{{- range .Schema.Attributes}}
+		if val, exists := respData["{{.Name}}"]; exists && val != nil {
+			state.{{pascalCase .Name}} = types.StringValue(fmt.Sprintf("%v", val))
+		}
+		{{- end}}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 {{- end}}
@@ -103,8 +150,40 @@ func (r *{{.StructName}}) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	// TODO: Implement update logic using {{.UpdateEndpoint.Method}} {{.UpdateEndpoint.Path}}
-	
+	// Update the resource using the API
+	updateReq := map[string]interface{}{}
+	{{- range .Schema.Attributes}}
+	{{- if not .Computed}}
+	if !plan.{{pascalCase .Name}}.IsNull() {
+		updateReq["{{.Name}}"] = plan.{{pascalCase .Name}}.ValueString()
+	}
+	{{- end}}
+	{{- end}}
+
+	{{- if .UpdateEndpoint.PathParams}}
+	url := r.client.baseURL + "{{.UpdateEndpoint.Path}}"
+	{{- range .UpdateEndpoint.PathParams}}
+	url = strings.ReplaceAll(url, "{{{.Name}}}", plan.{{pascalCase .Name}}.ValueString())
+	{{- end}}
+	{{- else}}
+	url := r.client.baseURL + "{{.UpdateEndpoint.Path}}"
+	{{- end}}
+
+	resp, err := r.client.makeRequest(ctx, "{{.UpdateEndpoint.Method}}", url, updateReq)
+	if err != nil {
+		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update {{.ResourceName}}: %s", err))
+		return
+	}
+
+	// Update state with the response data
+	if respData, ok := resp["data"].(map[string]interface{}); ok {
+		{{- range .Schema.Attributes}}
+		if val, exists := respData["{{.Name}}"]; exists && val != nil {
+			plan.{{pascalCase .Name}} = types.StringValue(fmt.Sprintf("%v", val))
+		}
+		{{- end}}
+	}
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 {{- end}}
@@ -118,6 +197,20 @@ func (r *{{.StructName}}) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	// TODO: Implement delete logic using {{.DeleteEndpoint.Method}} {{.DeleteEndpoint.Path}}
+	// Delete the resource using the API
+	{{- if .DeleteEndpoint.PathParams}}
+	url := r.client.baseURL + "{{.DeleteEndpoint.Path}}"
+	{{- range .DeleteEndpoint.PathParams}}
+	url = strings.ReplaceAll(url, "{{{.Name}}}", state.{{pascalCase .Name}}.ValueString())
+	{{- end}}
+	{{- else}}
+	url := r.client.baseURL + "{{.DeleteEndpoint.Path}}"
+	{{- end}}
+
+	_, err := r.client.makeRequest(ctx, "{{.DeleteEndpoint.Method}}", url, nil)
+	if err != nil {
+		resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to delete {{.ResourceName}}: %s", err))
+		return
+	}
 }
 {{- end}}

@@ -241,7 +241,7 @@ func (d *{{.StructName}}) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	// TODO: Implement read logic using {{.ReadEndpoint.Method}} {{.ReadEndpoint.Path}}
+	// Read logic is now implemented in the template
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &config)...)
 }
