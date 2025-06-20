@@ -30,7 +30,6 @@ data_sources:
 templates:
   resource_template: "templates/resource.go.tmpl"
   data_source_template: "templates/data_source.go.tmpl"
-  client_method_template: "templates/client_method.go.tmpl"
 
 # API parsing settings
 parsing:
