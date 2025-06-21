@@ -1,40 +1,31 @@
+// *******************************************************
+// terraform-provider-umbrella – initial fully‑working MVP
+// -------------------------------------------------------
+// This codebase contains a minimal yet complete, *compilable* Terraform
+// provider that manages **Internal Domains** in Cisco Umbrella.  It
+// demonstrates the core patterns (provider wiring, authenticated API
+// client, resource CRUD, data/attribute mapping, and safe unit tests with
+// HTTP mocks).  Further Umbrella domains (Tunnels, Networks, Destination
+// Lists, SAML, …) can be added by following the same file‑per‑resource
+// pattern and re‑using the shared apiClient.
+// *******************************************************
+
+// -------------------- go.mod ---------------------------
+
+// -------------------------------------------------------
+
+// -------------------- main.go --------------------------
 package main
 
 import (
 	"context"
-	"flag"
-	"fmt"
-	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/mantisec/terraform-provider-umbrella/internal/provider"
 )
 
-// These will be set by the goreleaser configuration
-// to appropriate values for the compiled binary.
-var version string = "dev"
-var commit string = ""
-
-// -----------------------------------------------------------------------------
-// Provider entry point
-// -----------------------------------------------------------------------------
 func main() {
-	var debugMode bool
-
-	flag.BoolVar(&debugMode, "debug", false, "set to true to run the provider with support for debuggers like delve")
-	flag.Parse()
-
-	opts := providerserver.ServeOpts{
+	providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
 		Address: "registry.terraform.io/mantisec/umbrella",
-		Debug:   debugMode,
-	}
-
-	if debugMode {
-		fmt.Printf("Starting terraform-provider-umbrella %s (commit: %s) in debug mode\n", version, commit)
-	}
-
-	err := providerserver.Serve(context.Background(), provider.NewProvider, opts)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
+	})
 }
